@@ -13,11 +13,12 @@
 <body>
   <div class="page-shell">
     <header class="site-header">
-      <a class="wordmark" href="#top" aria-label="Python in Practice home">
-        <span class="wordmark-mark">Py</span>
-        <span>Python<br><em>in practice</em></span>
+      <a class="brand-lockup" href="#top" aria-label="Python in Practice home">
+        <img src="https://www.python.org/static/community_logos/python-logo.png" alt="Python logo">
+        <span>Python in Practice</span>
       </a>
       <nav class="site-nav" aria-label="Main navigation">
+        <a href="#workbench">Workbench</a>
         <a href="#principles">Principles</a>
         <a href="#field-notes">Field notes</a>
         <a href="#contact">Say hello <span aria-hidden="true">↗</span></a>
@@ -48,6 +49,27 @@
             </div>
           </div>
           <div class="art-caption"><span>01 / 04</span><span>Good work<br>leaves a trace.</span></div>
+        </div>
+      </section>
+
+      <section class="workbench section-pad" id="workbench">
+        <div class="workbench-intro reveal">
+          <p class="eyebrow"><span class="eyebrow-dot"></span> The workbench</p>
+          <h2>Try an idea.<br><i>See it think.</i></h2>
+          <p>Write a little Python right here. No setup, no sign-in, just a friendly place to start.</p>
+        </div>
+        <div class="playground reveal">
+          <div class="playground-top"><div><span class="status-dot" id="runtime-status"></span><span id="runtime-label">Loading Python runtime</span></div><span class="file-label">scratch.py</span></div>
+          <label class="sr-only" for="code-editor">Python code editor</label>
+          <textarea id="code-editor" spellcheck="false">from datetime import datetime
+
+def greet(name):
+    return f"Hello, {name}."
+
+print(greet("curious human"))
+print(f"It is {datetime.now():%A}.")</textarea>
+          <div class="playground-actions"><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Run code</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div>
+          <div class="output-panel"><div class="output-label">Output <span id="run-time"></span></div><pre id="code-output">Your output will appear here.</pre></div>
         </div>
       </section>
 
@@ -89,6 +111,70 @@
       toggle.setAttribute('aria-expanded', 'false');
       nav.classList.remove('is-open');
     }));
+
+    const editor = document.querySelector('#code-editor');
+    const output = document.querySelector('#code-output');
+    const runButton = document.querySelector('#run-code');
+    const resetButton = document.querySelector('#reset-code');
+    const runtimeLabel = document.querySelector('#runtime-label');
+    const runtimeStatus = document.querySelector('#runtime-status');
+    const runTime = document.querySelector('#run-time');
+    const starterCode = editor.value;
+    let pyodide;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js';
+    script.onload = async () => {
+      try {
+        pyodide = await loadPyodide();
+        runtimeLabel.textContent = 'Python 3.13 ready';
+        runtimeStatus.classList.add('ready');
+        runButton.disabled = false;
+      } catch (error) {
+        runtimeLabel.textContent = 'Runtime unavailable';
+        output.textContent = 'Python could not be loaded. Check your connection and try again.';
+      }
+    };
+    script.onerror = () => {
+      runtimeLabel.textContent = 'Runtime unavailable';
+      output.textContent = 'Python could not be loaded. Check your connection and try again.';
+    };
+    document.head.appendChild(script);
+
+    async function runCode() {
+      if (!pyodide) return;
+      runButton.disabled = true;
+      runButton.innerHTML = '<span class="spinner"></span> Running';
+      output.classList.remove('error');
+      const started = performance.now();
+      try {
+        pyodide.setStdout({ batched: (text) => { output.textContent += text; } });
+        output.textContent = '';
+        await pyodide.runPythonAsync(editor.value);
+        if (!output.textContent) output.textContent = 'Code ran successfully with no output.';
+        runTime.textContent = `${Math.round(performance.now() - started)} ms`;
+      } catch (error) {
+        output.textContent = error.message;
+        output.classList.add('error');
+      } finally {
+        runButton.disabled = false;
+        runButton.innerHTML = '<span>▶</span> Run code';
+      }
+    }
+
+    runButton.addEventListener('click', runCode);
+    resetButton.addEventListener('click', () => {
+      editor.value = starterCode;
+      output.textContent = 'Your output will appear here.';
+      output.classList.remove('error');
+      runTime.textContent = '';
+    });
+    editor.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        runCode();
+      }
+    });
   </script>
 </body>
 </html>
