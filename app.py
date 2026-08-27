@@ -2,6 +2,9 @@ import json
 import os
 import re
 import sqlite3
+import sys
+import threading
+import webbrowser
 from io import BytesIO
 from functools import wraps
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -11,7 +14,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
-app.config["DATABASE"] = os.path.join(os.path.dirname(__file__), "python_practice.sqlite3")
+if getattr(sys, "frozen", False):
+    data_directory = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "PythonInPractice")
+    os.makedirs(data_directory, exist_ok=True)
+    app.config["DATABASE"] = os.path.join(data_directory, "python_practice.sqlite3")
+else:
+    app.config["DATABASE"] = os.path.join(os.path.dirname(__file__), "python_practice.sqlite3")
 
 DEFAULT_FILES = {
     "scratch.py": "from datetime import datetime\n\ndef greet(name):\n    return f\"Hello, {name}.\"\n\nprint(greet(\"curious human\"))\nprint(f\"It is {datetime.now():%A}.\")",
@@ -175,4 +183,5 @@ def save_workspace():
 
 
 if __name__ == "__main__":
+    threading.Timer(1.25, lambda: webbrowser.open("http://127.0.0.1:5000")).start()
     app.run(debug=True)

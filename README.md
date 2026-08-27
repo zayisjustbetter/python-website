@@ -17,7 +17,7 @@ Open http://127.0.0.1:5000 in your browser.
 
 Use the **Windows download** link on the website to download the source ZIP package. Extract it, then double-click `run_windows.bat`.
 
-To create the standalone Windows executable, run the **Build Windows executable** workflow in GitHub Actions, then download the `PythonInPractice-windows` artifact. The ZIP contains `PythonInPractice.exe` and the bundled templates and static files. You can also run `build_windows.bat` on a Windows machine with Python installed.
+To create the Windows installer, run the **Build Windows executable** workflow in GitHub Actions, then download the `PythonInPractice-Setup-windows` artifact. It produces `PythonInPractice-Setup.exe`, which installs the app and creates Start Menu and desktop shortcuts. You can also run `build_windows.bat` on a Windows machine with Python installed to build the app files locally.
 
 # DO NOT USE THIS WITHOUT CREDITING ME OR WITHOUT MY PERMISSION, AS THIS IS A COPYRIGHTED BUILD.
 

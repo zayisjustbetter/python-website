@@ -24,15 +24,18 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
           pyinstaller --noconfirm --clean --onedir --name PythonInPractice --add-data 'templates;templates' --add-data 'static;static' app.py
-          cp build_windows.bat dist/PythonInPractice/
-          7z a PythonInPractice-windows.zip ./dist/PythonInPractice/*
-      - name: Upload executable artifact
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" installer.iss
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PythonInPractice-windows
-          path: PythonInPractice-windows.zip
-      - name: Attach executable to release
+          name: PythonInPractice-Setup-windows
+          path: installer-output/PythonInPractice-Setup.exe
+      - name: Attach installer to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: PythonInPractice-windows.zip
+          files: installer-output/PythonInPractice-Setup.exe
