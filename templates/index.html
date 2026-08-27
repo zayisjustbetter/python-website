@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A practical field guide to building thoughtful software with Python.">
-  <title>Python in Practice</title>
+  <title>{{ 'Workbench | Python in Practice' if workbench_page else 'Python in Practice' }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,15 +15,15 @@
 <body data-username="{{ username or '' }}">
   <div class="page-shell">
     <header class="site-header">
-      <a class="brand-lockup" href="#top" aria-label="Python in Practice home">
+      <a class="brand-lockup" href="{{ url_for('home') }}#top" aria-label="Python in Practice home">
         <img src="https://www.python.org/static/community_logos/python-logo.png" alt="Python logo">
         <span>Python in Practice</span>
       </a>
       <nav class="site-nav" aria-label="Main navigation">
-        <a href="#workbench">Workbench</a>
-        <a href="#principles">Principles</a>
-        <a href="#field-notes">Field notes</a>
-        <a href="#contact">Say hello <span aria-hidden="true">↗</span></a>
+        <a href="{{ url_for('workbench') }}">Workbench</a>
+        <a href="{{ url_for('home') }}#principles">Principles</a>
+        <a href="{{ url_for('home') }}#field-notes">Field notes</a>
+        <a href="{{ url_for('home') }}#contact">Say hello <span aria-hidden="true">↗</span></a>
       </nav>
       <div class="account-area">
         {% if username %}<button class="account-button signed-in" id="account-button" type="button">{{ username }}</button><button class="logout-button" id="logout-button" type="button">Log out</button>{% else %}<button class="account-button" id="account-button" type="button">Log in <span aria-hidden="true">↗</span></button>{% endif %}
@@ -41,7 +41,7 @@
     </div>
 
     <main id="top">
-      <section class="hero section-pad">
+      {% if not workbench_page %}<section class="hero section-pad">
         <div class="hero-copy reveal">
           <p class="eyebrow"><span class="eyebrow-dot"></span> An independent guide for builders</p>
           <h1>Make it clear.<br><i>Make it last.</i></h1>
@@ -64,9 +64,9 @@
           </div>
           <div class="art-caption"><span>01 / 04</span><span>Good work<br>leaves a trace.</span></div>
         </div>
-      </section>
+      </section>{% endif %}
 
-      <section class="workbench section-pad" id="workbench">
+      {% if workbench_page %}<section class="workbench section-pad" id="workbench">
         <div class="workbench-heading reveal"><div><p class="eyebrow"><span class="eyebrow-dot"></span> The workbench</p><h2>Build it<br><i>here.</i></h2></div><p>Write, run, and experiment in a real Python environment right in your browser.</p></div>
         <div class="playground reveal">
           <div class="ide-titlebar"><div class="traffic-lights"><span></span><span></span><span></span></div><span class="ide-title">python-in-practice <b>—</b> CodeSpace</span><span class="ide-actions">⌁ &nbsp; □ &nbsp; •••</span></div>
@@ -88,9 +88,9 @@ print(f"It is {datetime.now():%A}.")</textarea>
           </div>
           <div class="ide-statusbar"><span id="language-status">◉ &nbsp; Python</span><span>Spaces: 4 &nbsp; UTF-8 &nbsp; LF</span><span id="cursor-status">Ln 1, Col 1</span></div>
         </div>
-      </section>
+      </section>{% endif %}
 
-      <section class="principles section-pad" id="principles">
+      {% if not workbench_page %}<section class="principles section-pad" id="principles">
         <div class="section-heading reveal"><p class="eyebrow">The north star</p><h2>Software should feel<br><i>like a conversation.</i></h2></div>
         <div class="principle-list">
           <article class="principle reveal"><span class="principle-number">01</span><div><h3>Start with the why</h3><p>Before the framework, before the feature list: get close to the problem. The best architecture usually starts with a very human question.</p></div><span class="principle-arrow">↗</span></article>
@@ -111,7 +111,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       <section class="contact section-pad" id="contact">
         <div class="contact-copy reveal"><p class="eyebrow">Keep in touch</p><h2>A little signal,<br><i>now and then.</i></h2><p>No noise, no growth hacks. Just a thoughtful note when there is something worth sharing.</p></div>
         <form class="signup-form reveal" method="post" action="#contact"><label for="email">Your email address</label><div class="input-row"><input id="email" name="email" type="email" placeholder="you@example.com" required><button type="submit" aria-label="Subscribe">↗</button></div>{% if submitted %}<p class="form-success" role="status">You’re on the list. See you soon.</p>{% endif %}</form>
-      </section>
+      </section>{% endif %}
     </main>
 
     <footer class="site-footer"><span>© 2026 Python in Practice</span><span>Made with intention + Python</span><a href="#top">Back to top ↑</a></footer>
@@ -131,7 +131,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       nav.classList.remove('is-open');
     }));
 
-    const editor = document.querySelector('#code-editor');
+    {% if workbench_page %}const editor = document.querySelector('#code-editor');
     const output = document.querySelector('#code-output');
     const runButton = document.querySelector('#run-code');
     const resetButton = document.querySelector('#reset-code');
@@ -309,7 +309,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       runTime.textContent = '';
     });
 
-    const authModal = document.querySelector('#auth-modal');
+    {% endif %}const authModal = document.querySelector('#auth-modal');
     const authForm = document.querySelector('#auth-form');
     const authMessage = document.querySelector('#auth-message');
     const authTitle = document.querySelector('#auth-title');
@@ -349,7 +349,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         return;
       }
       currentUser = data.username;
-      applyWorkspace(data.files);
+      {% if workbench_page %}applyWorkspace(data.files);{% endif %}
       authMessage.textContent = '';
       hideAuthModal();
       window.location.reload();
@@ -361,7 +361,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelectorAll('.auth-switch').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.mode)));
     authForm.addEventListener('submit', submitAuth);
     document.querySelector('#logout-button')?.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.reload(); });
-    codeEditor.on('change', saveWorkspace);
+    {% if workbench_page %}codeEditor.on('change', saveWorkspace);
 
     document.querySelector('#file-list').addEventListener('click', (event) => {
       const item = event.target.closest('.file-item');
@@ -398,7 +398,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       fetch('/api/workspace').then((response) => response.json()).then((data) => {
         if (data.files) applyWorkspace(data.files);
       });
-    }
+    }{% endif %}
   </script>
 </body>
 </html>

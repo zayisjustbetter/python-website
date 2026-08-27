@@ -65,7 +65,12 @@ init_db()
 @app.route("/", methods=["GET", "POST"])
 def home():
     submitted = request.method == "POST"
-    return render_template("index.html", submitted=submitted, username=session.get("username"))
+    return render_template("index.html", submitted=submitted, username=session.get("username"), workbench_page=False)
+
+
+@app.get("/workbench")
+def workbench():
+    return render_template("index.html", submitted=False, username=session.get("username"), workbench_page=True)
 
 
 @app.post("/api/auth/register")
