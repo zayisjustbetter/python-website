@@ -59,9 +59,9 @@
         <div class="playground reveal">
           <div class="ide-titlebar"><div class="traffic-lights"><span></span><span></span><span></span></div><span class="ide-title">python-in-practice <b>—</b> CodeSpace</span><span class="ide-actions">⌁ &nbsp; □ &nbsp; •••</span></div>
           <div class="ide-body">
-            <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><div class="file-item active"><span class="python-file">◆</span> scratch.py</div><div class="file-item"><span class="text-file">≡</span> README.md</div><div class="file-item"><span class="folder-file">›</span> .venv</div><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
+            <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><button class="file-item active" data-file="scratch.py" type="button"><span class="python-file">◆</span> scratch.py</button><button class="file-item" data-file="README.md" type="button"><span class="text-file">≡</span> README.md</button><button class="file-item" data-file=".venv" type="button"><span class="folder-file">›</span> .venv</button><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
             <div class="editor-column">
-              <div class="editor-tabs"><div class="editor-tab active"><span class="python-file">◆</span> scratch.py <span class="tab-close">×</span></div><span class="editor-tab-add">+</span></div>
+              <div class="editor-tabs"><button class="editor-tab active" data-file="scratch.py" type="button"><span class="python-file">◆</span> <span class="tab-name">scratch.py</span> <span class="tab-close">×</span></button><button class="editor-tab-add" id="new-file" type="button" aria-label="Create new Python file">+</button></div>
               <label class="sr-only" for="code-editor">Python code editor</label>
               <textarea id="code-editor" spellcheck="false">from datetime import datetime
 
@@ -74,7 +74,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
               <div class="output-panel"><div class="output-label"><span class="terminal-symbol">›_</span> Terminal <span id="run-time"></span></div><pre id="code-output">Your output will appear here.</pre></div>
             </div>
           </div>
-          <div class="ide-statusbar"><span>◉ &nbsp; Python</span><span>Spaces: 4 &nbsp; UTF-8 &nbsp; LF</span><span>Ln 1, Col 1</span></div>
+          <div class="ide-statusbar"><span id="language-status">◉ &nbsp; Python</span><span>Spaces: 4 &nbsp; UTF-8 &nbsp; LF</span><span id="cursor-status">Ln 1, Col 1</span></div>
         </div>
       </section>
 
@@ -127,6 +127,18 @@ print(f"It is {datetime.now():%A}.")</textarea>
     const runtimeStatus = document.querySelector('#runtime-status');
     const runTime = document.querySelector('#run-time');
     const starterCode = editor.value;
+    const languageStatus = document.querySelector('#language-status');
+    const cursorStatus = document.querySelector('#cursor-status');
+    const activeTab = document.querySelector('.editor-tab.active');
+    const tabName = document.querySelector('.tab-name');
+    const fileContents = {
+      'scratch.py': starterCode,
+      'README.md': '# Python in Practice\n\nA small place to write, run, and keep your Python ideas.\n',
+      '.venv': 'Virtual environment\n\nThis folder keeps project dependencies isolated.'
+    };
+    const initialContents = { ...fileContents };
+    let activeFile = 'scratch.py';
+    let newFileNumber = 1;
     const codeEditor = CodeMirror.fromTextArea(editor, {
       mode: 'python',
       theme: 'material-palenight',
@@ -138,6 +150,29 @@ print(f"It is {datetime.now():%A}.")</textarea>
     });
     let pyodide;
 
+    function updateEditorState() {
+      const isPython = activeFile.endsWith('.py');
+      codeEditor.setOption('mode', isPython ? 'python' : 'markdown');
+      codeEditor.setOption('readOnly', activeFile === '.venv');
+      languageStatus.innerHTML = isPython ? '◉ &nbsp; Python' : '◉ &nbsp; ' + (activeFile === 'README.md' ? 'Markdown' : 'Folder');
+      tabName.textContent = activeFile;
+      activeTab.dataset.file = activeFile;
+      runButton.disabled = !pyodide || !isPython;
+      document.querySelectorAll('.file-item').forEach((item) => item.classList.toggle('active', item.dataset.file === activeFile));
+    }
+
+    function selectFile(fileName) {
+      fileContents[activeFile] = codeEditor.getValue();
+      activeFile = fileName;
+      codeEditor.setValue(fileContents[fileName]);
+      codeEditor.clearHistory();
+      output.textContent = activeFile.endsWith('.py') ? 'Your output will appear here.' : 'This file is open in the editor.';
+      output.classList.remove('error');
+      runTime.textContent = '';
+      updateEditorState();
+      codeEditor.focus();
+    }
+
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js';
     script.onload = async () => {
@@ -145,7 +180,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         pyodide = await loadPyodide();
         runtimeLabel.textContent = 'Python 3.13 ready';
         runtimeStatus.classList.add('ready');
-        runButton.disabled = false;
+        updateEditorState();
       } catch (error) {
         runtimeLabel.textContent = 'Runtime unavailable';
         output.textContent = 'Python could not be loaded. Check your connection and try again.';
@@ -158,7 +193,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.head.appendChild(script);
 
     async function runCode() {
-      if (!pyodide) return;
+      if (!pyodide || !activeFile.endsWith('.py')) return;
       runButton.disabled = true;
       runButton.innerHTML = '<span class="spinner"></span> Running';
       output.classList.remove('error');
@@ -180,10 +215,37 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
     runButton.addEventListener('click', runCode);
     resetButton.addEventListener('click', () => {
-      codeEditor.setValue(starterCode);
+      codeEditor.setValue(initialContents[activeFile] || '# Start something new\n\n');
+      fileContents[activeFile] = codeEditor.getValue();
       output.textContent = 'Your output will appear here.';
       output.classList.remove('error');
       runTime.textContent = '';
+    });
+
+    document.querySelectorAll('.file-item').forEach((item) => item.addEventListener('click', () => {
+      if (item.dataset.file === '.venv') {
+        output.textContent = 'This is a project folder, not an editable file.';
+        return;
+      }
+      selectFile(item.dataset.file);
+    }));
+    activeTab.addEventListener('click', () => selectFile(activeTab.dataset.file));
+    document.querySelector('#new-file').addEventListener('click', () => {
+      const fileName = `untitled${newFileNumber === 1 ? '' : newFileNumber}.py`;
+      newFileNumber += 1;
+      fileContents[fileName] = '# Start something new\n\n';
+      const fileItem = document.createElement('button');
+      fileItem.className = 'file-item';
+      fileItem.dataset.file = fileName;
+      fileItem.type = 'button';
+      fileItem.innerHTML = '<span class="python-file">◆</span> ' + fileName;
+      fileItem.addEventListener('click', () => selectFile(fileName));
+      document.querySelector('.file-rail').insertBefore(fileItem, document.querySelector('.rail-footer'));
+      selectFile(fileName);
+    });
+    codeEditor.on('cursorActivity', () => {
+      const cursor = codeEditor.getCursor();
+      cursorStatus.textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
     });
   </script>
 </body>
