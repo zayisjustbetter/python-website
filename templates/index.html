@@ -61,7 +61,7 @@
           <div class="ide-body">
             <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><button class="file-item active" data-file="scratch.py" type="button"><span class="python-file">◆</span> scratch.py</button><button class="file-item" data-file="README.md" type="button"><span class="text-file">≡</span> README.md</button><button class="file-item" data-file=".venv" type="button"><span class="folder-file">›</span> .venv</button><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
             <div class="editor-column">
-              <div class="editor-tabs"><button class="editor-tab active" data-file="scratch.py" type="button"><span class="python-file">◆</span> <span class="tab-name">scratch.py</span> <span class="tab-close">×</span></button><button class="editor-tab-add" id="new-file" type="button" aria-label="Create new Python file">+</button></div>
+              <div class="editor-tabs" id="editor-tabs"><button class="editor-tab active" data-file="scratch.py" type="button"><span class="python-file">◆</span> <span class="tab-name">scratch.py</span> <span class="tab-close" aria-label="Close scratch.py">×</span></button><button class="editor-tab-add" id="new-file" type="button" aria-label="Create new Python file">+</button></div>
               <label class="sr-only" for="code-editor">Python code editor</label>
               <textarea id="code-editor" spellcheck="false">from datetime import datetime
 
@@ -129,8 +129,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     const starterCode = editor.value;
     const languageStatus = document.querySelector('#language-status');
     const cursorStatus = document.querySelector('#cursor-status');
-    const activeTab = document.querySelector('.editor-tab.active');
-    const tabName = document.querySelector('.tab-name');
+    const editorTabs = document.querySelector('#editor-tabs');
     const fileContents = {
       'scratch.py': starterCode,
       'README.md': '# Python in Practice\n\nA small place to write, run, and keep your Python ideas.\n',
@@ -138,6 +137,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     };
     const initialContents = { ...fileContents };
     let activeFile = 'scratch.py';
+    let openFiles = ['scratch.py'];
     let newFileNumber = 1;
     const codeEditor = CodeMirror.fromTextArea(editor, {
       mode: 'python',
@@ -151,18 +151,31 @@ print(f"It is {datetime.now():%A}.")</textarea>
     let pyodide;
 
     function updateEditorState() {
-      const isPython = activeFile.endsWith('.py');
+      const isPython = Boolean(activeFile && activeFile.endsWith('.py'));
       codeEditor.setOption('mode', isPython ? 'python' : 'markdown');
-      codeEditor.setOption('readOnly', activeFile === '.venv');
-      languageStatus.innerHTML = isPython ? '◉ &nbsp; Python' : '◉ &nbsp; ' + (activeFile === 'README.md' ? 'Markdown' : 'Folder');
-      tabName.textContent = activeFile;
-      activeTab.dataset.file = activeFile;
+      codeEditor.setOption('readOnly', !activeFile || activeFile === '.venv');
+      languageStatus.innerHTML = isPython ? '◉ &nbsp; Python' : '◉ &nbsp; ' + (activeFile === 'README.md' ? 'Markdown' : 'No file');
       runButton.disabled = !pyodide || !isPython;
       document.querySelectorAll('.file-item').forEach((item) => item.classList.toggle('active', item.dataset.file === activeFile));
+      renderTabs();
+    }
+
+    function renderTabs() {
+      editorTabs.querySelectorAll('.editor-tab').forEach((tab) => tab.remove());
+      openFiles.forEach((fileName) => {
+        const tab = document.createElement('button');
+        tab.className = 'editor-tab' + (fileName === activeFile ? ' active' : '');
+        tab.dataset.file = fileName;
+        tab.type = 'button';
+        tab.innerHTML = '<span class="python-file">◆</span> <span class="tab-name"></span> <span class="tab-close" aria-label="Close ' + fileName + '">×</span>';
+        tab.querySelector('.tab-name').textContent = fileName;
+        editorTabs.insertBefore(tab, document.querySelector('#new-file'));
+      });
     }
 
     function selectFile(fileName) {
-      fileContents[activeFile] = codeEditor.getValue();
+      if (activeFile) fileContents[activeFile] = codeEditor.getValue();
+      if (!openFiles.includes(fileName)) openFiles.push(fileName);
       activeFile = fileName;
       codeEditor.setValue(fileContents[fileName]);
       codeEditor.clearHistory();
@@ -171,6 +184,19 @@ print(f"It is {datetime.now():%A}.")</textarea>
       runTime.textContent = '';
       updateEditorState();
       codeEditor.focus();
+    }
+
+    function closeFile(fileName) {
+      fileContents[activeFile] = codeEditor.getValue();
+      openFiles = openFiles.filter((name) => name !== fileName);
+      if (activeFile === fileName) {
+        activeFile = openFiles[openFiles.length - 1] || null;
+        codeEditor.setValue(activeFile ? fileContents[activeFile] : '');
+      }
+      output.textContent = activeFile ? 'Your output will appear here.' : 'No file open. Use + to create a Python file.';
+      output.classList.remove('error');
+      runTime.textContent = '';
+      updateEditorState();
     }
 
     const script = document.createElement('script');
@@ -215,6 +241,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
     runButton.addEventListener('click', runCode);
     resetButton.addEventListener('click', () => {
+      if (!activeFile) return;
       codeEditor.setValue(initialContents[activeFile] || '# Start something new\n\n');
       fileContents[activeFile] = codeEditor.getValue();
       output.textContent = 'Your output will appear here.';
@@ -229,7 +256,17 @@ print(f"It is {datetime.now():%A}.")</textarea>
       }
       selectFile(item.dataset.file);
     }));
-    activeTab.addEventListener('click', () => selectFile(activeTab.dataset.file));
+    editorTabs.addEventListener('click', (event) => {
+      const closeButton = event.target.closest('.tab-close');
+      const tab = event.target.closest('.editor-tab');
+      if (!tab) return;
+      if (closeButton) {
+        event.stopPropagation();
+        closeFile(tab.dataset.file);
+        return;
+      }
+      selectFile(tab.dataset.file);
+    });
     document.querySelector('#new-file').addEventListener('click', () => {
       const fileName = `untitled${newFileNumber === 1 ? '' : newFileNumber}.py`;
       newFileNumber += 1;
