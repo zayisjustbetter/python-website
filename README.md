@@ -13,6 +13,10 @@ python app.py
 
 Open http://127.0.0.1:5000 in your browser.
 
+## Windows download
+
+Use the **Windows download** link on the website to download a ZIP package. Extract it, then double-click `run_windows.bat`. The launcher creates a virtual environment, installs the dependencies, starts the site, and opens it in your browser.
+
 # DO NOT USE THIS WITHOUT CREDITING ME OR WITHOUT MY PERMISSION, AS THIS IS A COPYRIGHTED BUILD.
 
 ## Accounts

@@ -2,9 +2,11 @@ import json
 import os
 import re
 import sqlite3
+from io import BytesIO
 from functools import wraps
+from zipfile import ZIP_DEFLATED, ZipFile
 
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, jsonify, render_template, request, send_file, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -66,6 +68,17 @@ init_db()
 def home():
     submitted = request.method == "POST"
     return render_template("index.html", submitted=submitted, username=session.get("username"), workbench_page=False)
+
+
+@app.get("/download/windows")
+def download_windows():
+    bundle = BytesIO()
+    files = ("app.py", "requirements.txt", "README.md", "run_windows.bat", "static/styles.css", "templates/index.html")
+    with ZipFile(bundle, "w", ZIP_DEFLATED) as archive:
+        for relative_path in files:
+            archive.write(os.path.join(os.path.dirname(__file__), relative_path), os.path.join("python-in-practice", relative_path))
+    bundle.seek(0)
+    return send_file(bundle, mimetype="application/zip", as_attachment=True, download_name="python-in-practice-windows.zip")
 
 
 @app.get("/workbench")
