@@ -71,7 +71,7 @@
         <div class="playground reveal">
           <div class="ide-titlebar"><div class="traffic-lights"><span></span><span></span><span></span></div><span class="ide-title">python-in-practice <b>—</b> CodeSpace</span><span class="ide-actions">⌁ &nbsp; □ &nbsp; •••</span></div>
           <div class="ide-body">
-            <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><div id="file-list"><button class="file-item active" data-file="scratch.py" type="button"><span class="python-file">◆</span> scratch.py</button><button class="file-item" data-file="README.md" type="button"><span class="text-file">≡</span> README.md</button><button class="file-item" data-file=".venv" type="button"><span class="folder-file">›</span> .venv</button></div><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
+            <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><div id="file-list"><button class="file-item active" data-file="scratch.py" type="button"><span class="python-file">◆</span> scratch.py</button><button class="file-item" data-file="README.md" type="button"><span class="text-file">≡</span> README.md</button><button class="file-item" data-file=".venv" type="button"><span class="folder-file">›</span> .venv</button></div><div class="file-menu" id="file-menu" hidden><button type="button" data-action="duplicate">Duplicate</button><button type="button" data-action="rename">Rename</button><button type="button" data-action="download">Download</button><button type="button" data-action="delete">Delete</button></div><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
             <div class="editor-column">
               <div class="editor-tabs" id="editor-tabs"><button class="editor-tab active" data-file="scratch.py" type="button"><span class="python-file">◆</span> <span class="tab-name">scratch.py</span> <span class="tab-close" aria-label="Close scratch.py">×</span></button><button class="editor-tab-add" id="new-file" type="button" aria-label="Create new Python file">+</button></div>
               <label class="sr-only" for="code-editor">Python code editor</label>
@@ -131,7 +131,9 @@ print(f"It is {datetime.now():%A}.")</textarea>
       nav.classList.remove('is-open');
     }));
 
-    {% if workbench_page %}const editor = document.querySelector('#code-editor');
+  </script>
+  {% if workbench_page %}<script>
+    const editor = document.querySelector('#code-editor');
     const output = document.querySelector('#code-output');
     const runButton = document.querySelector('#run-code');
     const resetButton = document.querySelector('#reset-code');
@@ -142,6 +144,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     const languageStatus = document.querySelector('#language-status');
     const cursorStatus = document.querySelector('#cursor-status');
     const editorTabs = document.querySelector('#editor-tabs');
+    const fileMenu = document.querySelector('#file-menu');
     const fileContents = {
       'scratch.py': starterCode,
       'README.md': '# Python in Practice\n\nA small place to write, run, and keep your Python ideas.\n',
@@ -258,6 +261,65 @@ print(f"It is {datetime.now():%A}.")</textarea>
       });
     }
 
+    function closeFileMenu() {
+      fileMenu.hidden = true;
+    }
+
+    function openFileMenu(fileName, item) {
+      if (fileName === '.venv') {
+        closeFileMenu();
+        return;
+      }
+      fileMenu.hidden = false;
+      fileMenu.style.top = `${item.offsetTop + item.offsetHeight}px`;
+      fileMenu.style.left = `${Math.max(42, item.offsetLeft)}px`;
+      fileMenu.dataset.file = fileName;
+    }
+
+    function duplicateFile(fileName) {
+      const extension = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.')) : '';
+      const stem = extension ? fileName.slice(0, -extension.length) : fileName;
+      let copyNumber = 1;
+      let copyName = `${stem} copy${extension}`;
+      while (fileContents[copyName] !== undefined) copyName = `${stem} copy ${++copyNumber}${extension}`;
+      fileContents[copyName] = fileContents[fileName];
+      renderFileList();
+      selectFile(copyName);
+    }
+
+    function renameFile(fileName) {
+      const newName = window.prompt('Rename file', fileName)?.trim();
+      if (!newName || newName === fileName || fileContents[newName] !== undefined) return;
+      fileContents[newName] = fileContents[fileName];
+      delete fileContents[fileName];
+      openFiles = openFiles.map((name) => name === fileName ? newName : name);
+      if (activeFile === fileName) activeFile = newName;
+      renderFileList();
+      updateEditorState();
+      saveWorkspace();
+    }
+
+    function deleteFile(fileName) {
+      if (!window.confirm(`Delete ${fileName}?`)) return;
+      delete fileContents[fileName];
+      openFiles = openFiles.filter((name) => name !== fileName);
+      if (activeFile === fileName) {
+        activeFile = openFiles[openFiles.length - 1] || null;
+        codeEditor.setValue(activeFile ? fileContents[activeFile] : '');
+      }
+      renderFileList();
+      updateEditorState();
+      saveWorkspace();
+    }
+
+    function downloadFile(fileName) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([fileContents[fileName]], { type: 'text/plain' }));
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js';
     script.onload = async () => {
@@ -309,7 +371,9 @@ print(f"It is {datetime.now():%A}.")</textarea>
       runTime.textContent = '';
     });
 
-    {% endif %}const authModal = document.querySelector('#auth-modal');
+  </script>{% endif %}
+  <script>
+    const authModal = document.querySelector('#auth-modal');
     const authForm = document.querySelector('#auth-form');
     const authMessage = document.querySelector('#auth-message');
     const authTitle = document.querySelector('#auth-title');
@@ -349,7 +413,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         return;
       }
       currentUser = data.username;
-      {% if workbench_page %}applyWorkspace(data.files);{% endif %}
+      if (document.querySelector('#code-editor')) applyWorkspace(data.files);
       authMessage.textContent = '';
       hideAuthModal();
       window.location.reload();
@@ -361,17 +425,33 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelectorAll('.auth-switch').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.mode)));
     authForm.addEventListener('submit', submitAuth);
     document.querySelector('#logout-button')?.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.reload(); });
-    {% if workbench_page %}codeEditor.on('change', saveWorkspace);
+  </script>
+  {% if workbench_page %}<script>
+    codeEditor.on('change', saveWorkspace);
 
     document.querySelector('#file-list').addEventListener('click', (event) => {
       const item = event.target.closest('.file-item');
       if (!item) return;
+      event.stopPropagation();
       if (item.dataset.file === '.venv') {
         output.textContent = 'This is a project folder, not an editable file.';
         return;
       }
       selectFile(item.dataset.file);
+      openFileMenu(item.dataset.file, item);
     });
+    fileMenu.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      const fileName = fileMenu.dataset.file;
+      if (!action || !fileName) return;
+      event.stopPropagation();
+      closeFileMenu();
+      if (action === 'duplicate') duplicateFile(fileName);
+      if (action === 'rename') renameFile(fileName);
+      if (action === 'download') downloadFile(fileName);
+      if (action === 'delete') deleteFile(fileName);
+    });
+    document.addEventListener('click', closeFileMenu);
     editorTabs.addEventListener('click', (event) => {
       const closeButton = event.target.closest('.tab-close');
       const tab = event.target.closest('.editor-tab');
@@ -398,7 +478,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       fetch('/api/workspace').then((response) => response.json()).then((data) => {
         if (data.files) applyWorkspace(data.files);
       });
-    }{% endif %}
+    }</script>{% endif %}
   </script>
 </body>
 </html>
