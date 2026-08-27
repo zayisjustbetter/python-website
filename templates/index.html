@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-palenight.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -53,23 +55,26 @@
       </section>
 
       <section class="workbench section-pad" id="workbench">
-        <div class="workbench-intro reveal">
-          <p class="eyebrow"><span class="eyebrow-dot"></span> The workbench</p>
-          <h2>Try an idea.<br><i>See it think.</i></h2>
-          <p>Write a little Python right here. No setup, no sign-in, just a friendly place to start.</p>
-        </div>
+        <div class="workbench-heading reveal"><div><p class="eyebrow"><span class="eyebrow-dot"></span> The workbench</p><h2>Build it<br><i>here.</i></h2></div><p>Write, run, and experiment in a real Python environment right in your browser.</p></div>
         <div class="playground reveal">
-          <div class="playground-top"><div><span class="status-dot" id="runtime-status"></span><span id="runtime-label">Loading Python runtime</span></div><span class="file-label">scratch.py</span></div>
-          <label class="sr-only" for="code-editor">Python code editor</label>
-          <textarea id="code-editor" spellcheck="false">from datetime import datetime
+          <div class="ide-titlebar"><div class="traffic-lights"><span></span><span></span><span></span></div><span class="ide-title">python-in-practice <b>—</b> CodeSpace</span><span class="ide-actions">⌁ &nbsp; □ &nbsp; •••</span></div>
+          <div class="ide-body">
+            <aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><div class="file-item active"><span class="python-file">◆</span> scratch.py</div><div class="file-item"><span class="text-file">≡</span> README.md</div><div class="file-item"><span class="folder-file">›</span> .venv</div><div class="rail-footer">▣ &nbsp; source control<br>◌ &nbsp; extensions</div></aside>
+            <div class="editor-column">
+              <div class="editor-tabs"><div class="editor-tab active"><span class="python-file">◆</span> scratch.py <span class="tab-close">×</span></div><span class="editor-tab-add">+</span></div>
+              <label class="sr-only" for="code-editor">Python code editor</label>
+              <textarea id="code-editor" spellcheck="false">from datetime import datetime
 
 def greet(name):
     return f"Hello, {name}."
 
 print(greet("curious human"))
 print(f"It is {datetime.now():%A}.")</textarea>
-          <div class="playground-actions"><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Run code</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div>
-          <div class="output-panel"><div class="output-label">Output <span id="run-time"></span></div><pre id="code-output">Your output will appear here.</pre></div>
+              <div class="playground-actions"><span class="branch-label">⎇ main</span><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Run Python</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div>
+              <div class="output-panel"><div class="output-label"><span class="terminal-symbol">›_</span> Terminal <span id="run-time"></span></div><pre id="code-output">Your output will appear here.</pre></div>
+            </div>
+          </div>
+          <div class="ide-statusbar"><span>◉ &nbsp; Python</span><span>Spaces: 4 &nbsp; UTF-8 &nbsp; LF</span><span>Ln 1, Col 1</span></div>
         </div>
       </section>
 
@@ -99,6 +104,8 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
     <footer class="site-footer"><span>© 2026 Python in Practice</span><span>Made with intention + Python</span><a href="#top">Back to top ↑</a></footer>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
   <script>
     const toggle = document.querySelector('.menu-toggle');
     const nav = document.querySelector('.site-nav');
@@ -120,6 +127,15 @@ print(f"It is {datetime.now():%A}.")</textarea>
     const runtimeStatus = document.querySelector('#runtime-status');
     const runTime = document.querySelector('#run-time');
     const starterCode = editor.value;
+    const codeEditor = CodeMirror.fromTextArea(editor, {
+      mode: 'python',
+      theme: 'material-palenight',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      autofocus: false,
+      extraKeys: { 'Ctrl-Enter': runCode, 'Cmd-Enter': runCode }
+    });
     let pyodide;
 
     const script = document.createElement('script');
@@ -150,7 +166,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       try {
         pyodide.setStdout({ batched: (text) => { output.textContent += text; } });
         output.textContent = '';
-        await pyodide.runPythonAsync(editor.value);
+        await pyodide.runPythonAsync(codeEditor.getValue());
         if (!output.textContent) output.textContent = 'Code ran successfully with no output.';
         runTime.textContent = `${Math.round(performance.now() - started)} ms`;
       } catch (error) {
@@ -164,16 +180,10 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
     runButton.addEventListener('click', runCode);
     resetButton.addEventListener('click', () => {
-      editor.value = starterCode;
+      codeEditor.setValue(starterCode);
       output.textContent = 'Your output will appear here.';
       output.classList.remove('error');
       runTime.textContent = '';
-    });
-    editor.addEventListener('keydown', (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-        event.preventDefault();
-        runCode();
-      }
     });
   </script>
 </body>
