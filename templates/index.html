@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-palenight.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body data-username="{{ username or '' }}">
   <div class="page-shell">
     <header class="site-header">
       <a class="brand-lockup" href="#top" aria-label="Python in Practice home">
@@ -25,8 +25,20 @@
         <a href="#field-notes">Field notes</a>
         <a href="#contact">Say hello <span aria-hidden="true">↗</span></a>
       </nav>
+      <div class="account-area">
+        {% if username %}<button class="account-button signed-in" id="account-button" type="button">{{ username }}</button><button class="logout-button" id="logout-button" type="button">Log out</button>{% else %}<button class="account-button" id="account-button" type="button">Log in <span aria-hidden="true">↗</span></button>{% endif %}
+      </div>
       <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
     </header>
+
+    <div class="auth-modal" id="auth-modal" aria-hidden="true">
+      <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
+        <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
+        <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
+        <form id="auth-form"><label for="auth-username">Username</label><input id="auth-username" name="username" autocomplete="username" required pattern="[A-Za-z0-9_]{3,24}"><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+      </div>
+    </div>
 
     <main id="top">
       <section class="hero section-pad">
@@ -139,6 +151,8 @@ print(f"It is {datetime.now():%A}.")</textarea>
     let activeFile = 'scratch.py';
     let openFiles = ['scratch.py'];
     let newFileNumber = 1;
+    let currentUser = document.body.dataset.username || null;
+    let saveTimer;
     const codeEditor = CodeMirror.fromTextArea(editor, {
       mode: 'python',
       theme: 'material-palenight',
@@ -177,17 +191,18 @@ print(f"It is {datetime.now():%A}.")</textarea>
       if (activeFile) fileContents[activeFile] = codeEditor.getValue();
       if (!openFiles.includes(fileName)) openFiles.push(fileName);
       activeFile = fileName;
-      codeEditor.setValue(fileContents[fileName]);
+      codeEditor.setValue(fileContents[fileName] || '');
       codeEditor.clearHistory();
       output.textContent = activeFile.endsWith('.py') ? 'Your output will appear here.' : 'This file is open in the editor.';
       output.classList.remove('error');
       runTime.textContent = '';
       updateEditorState();
+      saveWorkspace();
       codeEditor.focus();
     }
 
     function closeFile(fileName) {
-      fileContents[activeFile] = codeEditor.getValue();
+      if (activeFile) fileContents[activeFile] = codeEditor.getValue();
       openFiles = openFiles.filter((name) => name !== fileName);
       if (activeFile === fileName) {
         activeFile = openFiles[openFiles.length - 1] || null;
@@ -196,6 +211,29 @@ print(f"It is {datetime.now():%A}.")</textarea>
       output.textContent = activeFile ? 'Your output will appear here.' : 'No file open. Use + to create a Python file.';
       output.classList.remove('error');
       runTime.textContent = '';
+      updateEditorState();
+      saveWorkspace();
+    }
+
+    function saveWorkspace() {
+      if (!currentUser) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        if (activeFile) fileContents[activeFile] = codeEditor.getValue();
+        await fetch('/api/workspace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: fileContents })
+        });
+      }, 350);
+    }
+
+    function applyWorkspace(files) {
+      Object.assign(fileContents, files);
+      activeFile = Object.keys(files).find((name) => name.endsWith('.py')) || 'scratch.py';
+      openFiles = [activeFile];
+      codeEditor.setValue(fileContents[activeFile] || '');
+      codeEditor.clearHistory();
       updateEditorState();
     }
 
@@ -249,6 +287,60 @@ print(f"It is {datetime.now():%A}.")</textarea>
       runTime.textContent = '';
     });
 
+    const authModal = document.querySelector('#auth-modal');
+    const authForm = document.querySelector('#auth-form');
+    const authMessage = document.querySelector('#auth-message');
+    const authTitle = document.querySelector('#auth-title');
+    const authSubmit = document.querySelector('#auth-submit');
+    let authMode = 'login';
+
+    function showAuthModal() {
+      authModal.setAttribute('aria-hidden', 'false');
+      authModal.classList.add('open');
+      document.querySelector('#auth-username').focus();
+    }
+
+    function hideAuthModal() {
+      authModal.setAttribute('aria-hidden', 'true');
+      authModal.classList.remove('open');
+      authMessage.textContent = '';
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.querySelectorAll('.auth-switch').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+      authTitle.innerHTML = mode === 'login' ? 'Keep your work<br><i>close.</i>' : 'Make a home<br><i>for ideas.</i>';
+      authSubmit.innerHTML = mode === 'login' ? 'Log in <span>↗</span>' : 'Create account <span>↗</span>';
+      document.querySelector('#auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+      authMessage.textContent = '';
+    }
+
+    async function submitAuth(event) {
+      event.preventDefault();
+      authSubmit.disabled = true;
+      authMessage.textContent = 'Connecting...';
+      const response = await fetch('/api/auth/' + authMode, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(authForm))) });
+      const data = await response.json();
+      if (!response.ok) {
+        authMessage.textContent = data.error;
+        authSubmit.disabled = false;
+        return;
+      }
+      currentUser = data.username;
+      applyWorkspace(data.files);
+      authMessage.textContent = '';
+      hideAuthModal();
+      window.location.reload();
+    }
+
+    document.querySelector('#account-button').addEventListener('click', showAuthModal);
+    document.querySelector('#auth-close').addEventListener('click', hideAuthModal);
+    authModal.addEventListener('click', (event) => { if (event.target === authModal) hideAuthModal(); });
+    document.querySelectorAll('.auth-switch').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.mode)));
+    authForm.addEventListener('submit', submitAuth);
+    document.querySelector('#logout-button')?.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.reload(); });
+    codeEditor.on('change', saveWorkspace);
+
     document.querySelectorAll('.file-item').forEach((item) => item.addEventListener('click', () => {
       if (item.dataset.file === '.venv') {
         output.textContent = 'This is a project folder, not an editable file.';
@@ -284,6 +376,11 @@ print(f"It is {datetime.now():%A}.")</textarea>
       const cursor = codeEditor.getCursor();
       cursorStatus.textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
     });
+    if (currentUser) {
+      fetch('/api/workspace').then((response) => response.json()).then((data) => {
+        if (data.files) applyWorkspace(data.files);
+      });
+    }
   </script>
 </body>
 </html>

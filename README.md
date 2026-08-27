@@ -14,3 +14,7 @@ python app.py
 Open http://127.0.0.1:5000 in your browser.
 
 # DO NOT USE THIS WITHOUT CREDITING ME OR WITHOUT MY PERMISSION, AS THIS IS A COPYRIGHTED BUILD.
+
+## Accounts
+
+Create an account from the **Log in** button to save editor files to a local SQLite workspace. Set `SECRET_KEY` in the environment before deploying anywhere beyond local development.
