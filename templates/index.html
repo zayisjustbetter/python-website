@@ -302,7 +302,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     runButton.addEventListener('click', runCode);
     resetButton.addEventListener('click', () => {
       if (!activeFile) return;
-      codeEditor.setValue(initialContents[activeFile] || '# Start something new\n\n');
+      codeEditor.setValue(initialContents[activeFile] || '');
       fileContents[activeFile] = codeEditor.getValue();
       output.textContent = 'Your output will appear here.';
       output.classList.remove('error');
