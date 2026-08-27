@@ -17,4 +17,4 @@ Open http://127.0.0.1:5000 in your browser.
 
 ## Accounts
 
-Create an account from the **Log in** button to save editor files to a local SQLite workspace. Set `SECRET_KEY` in the environment before deploying anywhere beyond local development.
+Create an account from the **Log in** button with an email such as `you@example.com` to save editor files to a local SQLite workspace. Set `SECRET_KEY` in the environment before deploying anywhere beyond local development.

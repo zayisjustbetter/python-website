@@ -55,8 +55,8 @@ def login_required(view):
     return wrapped_view
 
 
-def valid_username(username):
-    return bool(re.fullmatch(r"[A-Za-z0-9_]{3,24}", username))
+def valid_email(email):
+    return len(email) <= 254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
 
 
 init_db()
@@ -71,10 +71,10 @@ def home():
 @app.post("/api/auth/register")
 def register():
     payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username", "")).strip()
+    username = str(payload.get("email", payload.get("username", ""))).strip().lower()
     password = str(payload.get("password", ""))
-    if not valid_username(username):
-        return jsonify(error="Use 3-24 letters, numbers, or underscores for your username."), 400
+    if not valid_email(username):
+        return jsonify(error="Enter a valid email address, like you@example.com."), 400
     if len(password) < 8:
         return jsonify(error="Your password must be at least 8 characters."), 400
 
@@ -89,7 +89,7 @@ def register():
         database.commit()
     except sqlite3.IntegrityError:
         database.close()
-        return jsonify(error="That username is already taken."), 409
+        return jsonify(error="That email is already registered."), 409
     database.close()
     session.clear()
     session["user_id"] = user_id
@@ -100,7 +100,7 @@ def register():
 @app.post("/api/auth/login")
 def login():
     payload = request.get_json(silent=True) or {}
-    username = str(payload.get("username", "")).strip()
+    username = str(payload.get("email", payload.get("username", ""))).strip().lower()
     password = str(payload.get("password", ""))
     database = get_db()
     user = database.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()

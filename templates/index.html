@@ -36,7 +36,7 @@
         <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
         <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
         <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
-        <form id="auth-form"><label for="auth-username">Username</label><input id="auth-username" name="username" autocomplete="username" required pattern="[A-Za-z0-9_]{3,24}"><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
       </div>
     </div>
 
@@ -297,7 +297,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     function showAuthModal() {
       authModal.setAttribute('aria-hidden', 'false');
       authModal.classList.add('open');
-      document.querySelector('#auth-username').focus();
+      document.querySelector('#auth-email').focus();
     }
 
     function hideAuthModal() {
