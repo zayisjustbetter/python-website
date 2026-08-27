@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A practical field guide to building thoughtful software with Python.">
+  <title>Python in Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Python in Practice home">
+        <span class="wordmark-mark">Py</span>
+        <span>Python<br><em>in practice</em></span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="#principles">Principles</a>
+        <a href="#field-notes">Field notes</a>
+        <a href="#contact">Say hello <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
+    </header>
+
+    <main id="top">
+      <section class="hero section-pad">
+        <div class="hero-copy reveal">
+          <p class="eyebrow"><span class="eyebrow-dot"></span> An independent guide for builders</p>
+          <h1>Make it clear.<br><i>Make it last.</i></h1>
+          <p class="hero-intro">A considered approach to Python, product thinking, and the small decisions that turn good code into useful software.</p>
+          <a class="text-link" href="#principles">Explore the principles <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="hero-art reveal" aria-label="Abstract illustration of a Python code window" role="img">
+          <div class="art-sun"></div>
+          <div class="code-card">
+            <div class="window-bar"><span></span><span></span><span></span><small>quietly_good.py</small></div>
+            <div class="code-lines" aria-hidden="true">
+              <p><b>01</b> <span class="purple">def</span> <strong>build</strong>(idea):</p>
+              <p><b>02</b> &nbsp;&nbsp;care = <span class="orange">"deep"</span></p>
+              <p><b>03</b> &nbsp;&nbsp;clarity = <span class="orange">True</span></p>
+              <p><b>04</b> &nbsp;&nbsp;<span class="purple">return</span> idea.<span class="teal">ship</span>()</p>
+              <p class="blank"><b>05</b></p>
+              <p><b>06</b> <span class="purple">if</span> __name__ == <span class="orange">"__main__"</span>:</p>
+              <p><b>07</b> &nbsp;&nbsp;build(<span class="orange">"something useful"</span>)</p>
+            </div>
+          </div>
+          <div class="art-caption"><span>01 / 04</span><span>Good work<br>leaves a trace.</span></div>
+        </div>
+      </section>
+
+      <section class="principles section-pad" id="principles">
+        <div class="section-heading reveal"><p class="eyebrow">The north star</p><h2>Software should feel<br><i>like a conversation.</i></h2></div>
+        <div class="principle-list">
+          <article class="principle reveal"><span class="principle-number">01</span><div><h3>Start with the why</h3><p>Before the framework, before the feature list: get close to the problem. The best architecture usually starts with a very human question.</p></div><span class="principle-arrow">↗</span></article>
+          <article class="principle reveal"><span class="principle-number">02</span><div><h3>Prefer the obvious</h3><p>Python gives us a rare gift: code that reads like a thought. Reach for the solution your future self can understand on a tired Tuesday.</p></div><span class="principle-arrow">↗</span></article>
+          <article class="principle reveal"><span class="principle-number">03</span><div><h3>Leave room to grow</h3><p>Good foundations are not overbuilt. They are generous. Make the next change feel possible, not like a negotiation with the past.</p></div><span class="principle-arrow">↗</span></article>
+        </div>
+      </section>
+
+      <section class="field-notes section-pad" id="field-notes">
+        <div class="notes-top reveal"><p class="eyebrow">From the notebook</p><a class="text-link" href="#contact">Get the next note <span aria-hidden="true">↗</span></a></div>
+        <div class="note-grid">
+          <article class="note-card note-feature reveal"><div class="note-meta"><span>01 / Essay</span><span>8 min read</span></div><h2>The quiet power<br>of <i>boring</i> code</h2><p>On restraint, readable names, and why the cleverest solution is often the one nobody notices.</p><a href="#contact" aria-label="Read The quiet power of boring code">Read note <span>↗</span></a></article>
+          <article class="note-card note-small reveal"><div class="note-graphic">{<span>py</span>}</div><div class="note-meta"><span>02 / Sketch</span><span>3 min read</span></div><h3>What makes a<br>good function?</h3><a href="#contact" aria-label="Read What makes a good function">Read note <span>↗</span></a></article>
+          <article class="note-card note-small orange-card reveal"><div class="note-graphic">→</div><div class="note-meta"><span>03 / Field note</span><span>5 min read</span></div><h3>Ship the smallest<br>useful thing</h3><a href="#contact" aria-label="Read Ship the smallest useful thing">Read note <span>↗</span></a></article>
+        </div>
+      </section>
+
+      <section class="contact section-pad" id="contact">
+        <div class="contact-copy reveal"><p class="eyebrow">Keep in touch</p><h2>A little signal,<br><i>now and then.</i></h2><p>No noise, no growth hacks. Just a thoughtful note when there is something worth sharing.</p></div>
+        <form class="signup-form reveal" method="post" action="#contact"><label for="email">Your email address</label><div class="input-row"><input id="email" name="email" type="email" placeholder="you@example.com" required><button type="submit" aria-label="Subscribe">↗</button></div>{% if submitted %}<p class="form-success" role="status">You’re on the list. See you soon.</p>{% endif %}</form>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>© 2026 Python in Practice</span><span>Made with intention + Python</span><a href="#top">Back to top ↑</a></footer>
+  </div>
+  <script>
+    const toggle = document.querySelector('.menu-toggle');
+    const nav = document.querySelector('.site-nav');
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      nav.classList.toggle('is-open', !open);
+    });
+    document.querySelectorAll('.site-nav a').forEach((link) => link.addEventListener('click', () => {
+      toggle.setAttribute('aria-expanded', 'false');
+      nav.classList.remove('is-open');
+    }));
+  </script>
+</body>
+</html>
