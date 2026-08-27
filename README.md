@@ -13,6 +13,10 @@ python app.py
 
 Open http://127.0.0.1:5000 in your browser.
 
+## Deploy as a website
+
+This project includes a production web start command. On Render, connect this repository and use the included `render.yaml`; set a strong `SECRET_KEY` environment variable. For another host, install `requirements.txt` and run `gunicorn app:app`.
+
 ## Windows download
 
 Use the **Windows download** link on the website to download the source ZIP package. Extract it, then double-click `run_windows.bat`.
