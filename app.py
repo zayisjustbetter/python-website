@@ -99,6 +99,11 @@ def lessons():
     return render_template("lessons.html")
 
 
+@app.get("/discord")
+def discord():
+    return render_template("discord.html")
+
+
 @app.post("/api/auth/register")
 def register():
     payload = request.get_json(silent=True) or {}
