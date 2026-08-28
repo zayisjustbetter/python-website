@@ -141,6 +141,10 @@
       document.querySelector('#auth-email').focus();
     }
 
+    function needsEmailConfirmation(user) {
+      return user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email');
+    }
+
     function hideAuth() {
       authPanel.classList.remove('open');
       authMessage.textContent = '';
@@ -154,6 +158,10 @@
         authMessage.textContent = 'Add your Supabase URL and anon key first.';
         return;
       }
+      if (authMode === 'register' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        authMessage.textContent = 'Enter a valid email address.';
+        return;
+      }
       authSubmit.disabled = true;
       authMessage.textContent = 'Connecting...';
       const result = authMode === 'login'
@@ -165,7 +173,7 @@
         return;
       }
       currentUser = result.data.user;
-      if (!currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
+      if (needsEmailConfirmation(currentUser) && !currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
       authSubmit.disabled = false;
       hideAuth();
       updateAuth();
@@ -204,7 +212,7 @@
     if (supabaseClient) {
       supabaseClient.auth.getUser().then(async ({ data }) => {
         currentUser = data.user;
-        if (currentUser?.email_confirmed_at) unlockSite(); else if (currentUser) { await supabaseClient.auth.signOut(); currentUser = null; }
+        if (currentUser && (!needsEmailConfirmation(currentUser) || currentUser.email_confirmed_at)) unlockSite(); else if (currentUser) { await supabaseClient.auth.signOut(); currentUser = null; }
         updateAuth();
       });
     } else {

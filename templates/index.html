@@ -404,12 +404,17 @@ print(f"It is {datetime.now():%A}.")</textarea>
       authMessage.textContent = '';
     }
 
+    function needsEmailConfirmation(user) {
+      return user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email');
+    }
+
     async function submitAuth(event) {
       event.preventDefault();
       authSubmit.disabled = true;
       authMessage.textContent = 'Connecting...';
       if (!supabaseClient) { authMessage.textContent = 'Supabase is not configured.'; authSubmit.disabled = false; return; }
       const values = Object.fromEntries(new FormData(authForm));
+      if (authMode === 'register' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) { authMessage.textContent = 'Enter a valid email address.'; authSubmit.disabled = false; return; }
       const result = authMode === 'login' ? await supabaseClient.auth.signInWithPassword(values) : await supabaseClient.auth.signUp({ ...values, options: { emailRedirectTo: window.location.origin } });
       if (result.error) {
         authMessage.textContent = result.error.message;
@@ -417,7 +422,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         return;
       }
       currentUser = result.data.user;
-      if (!currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
+      if (needsEmailConfirmation(currentUser) && !currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
       authMessage.textContent = '';
       hideAuthModal();
       unlockSite();
@@ -439,7 +444,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelector('#auth-gate-login').addEventListener('click', showAuthModal);
     document.querySelector('#discord-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
   </script>
-  if (supabaseClient) supabaseClient.auth.getUser().then(({ data }) => { currentUser = data.user; if (currentUser?.email_confirmed_at) { unlockSite(); updateAccount(); if (typeof loadCloudWorkspace === 'function') loadCloudWorkspace(); } else if (currentUser) signOut(); });
+  if (supabaseClient) supabaseClient.auth.getUser().then(({ data }) => { currentUser = data.user; if (currentUser && (!needsEmailConfirmation(currentUser) || currentUser.email_confirmed_at)) { unlockSite(); updateAccount(); if (typeof loadCloudWorkspace === 'function') loadCloudWorkspace(); } else if (currentUser) signOut(); });
   {% if workbench_page %}<script>
     codeEditor.on('change', saveWorkspace);
 
