@@ -24,6 +24,8 @@ The public website is hosted on GitHub Pages at https://code.pip.abrdns.com. The
 3. Copy the project URL and public anon key from **Project Settings** → **API** into `supabase-config.js`.
 4. Commit and push the updated config; GitHub Pages will redeploy the site.
 
+In Supabase **Authentication** → **Providers**, enable Discord and add the Discord client ID and secret. Add your deployed site URL (and local URL when testing) under **URL Configuration**. Email confirmation is required by the site before any page or workbench interaction is unlocked.
+
 The anon key is intended for browser use. Row-level security in the included schema limits each user to their own workspace.
 
 ## Windows download

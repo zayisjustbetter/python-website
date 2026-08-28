@@ -11,8 +11,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-palenight.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="{{ url_for('static', filename='supabase-config.js') }}"></script>
 </head>
-<body data-username="{{ username or '' }}">
+<body class="auth-required" data-username="{{ username or '' }}">
   <div class="page-shell">
     <header class="site-header">
       <a class="brand-lockup" href="{{ url_for('home') }}#top" aria-label="Python in Practice home">
@@ -37,9 +39,11 @@
         <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
         <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
         <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
-        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
       </div>
     </div>
+    <div class="profile-modal" id="profile-modal" aria-hidden="true"><div class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title"><button class="auth-close" id="profile-close" type="button" aria-label="Close profile">×</button><p class="eyebrow">Your account</p><h2 id="profile-title">Your <i>profile.</i></h2><p class="profile-email" id="profile-email"></p><p class="profile-status" id="profile-status"></p><button class="profile-logout" id="profile-logout" type="button">Log out</button></div></div>
+    <div class="auth-gate" id="auth-gate" role="status"><p class="eyebrow">Members only</p><h2>Confirm your<br><i>email.</i></h2><p>Check your inbox to unlock the Python workbench and site.</p><button class="auth-gate-button" id="auth-gate-login" type="button">Log in or create an account <span>↗</span></button></div>
 
     <main id="top">
       {% if not workbench_page %}<section class="hero section-pad">
@@ -155,7 +159,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     let activeFile = 'scratch.py';
     let openFiles = ['scratch.py'];
     let newFileNumber = 1;
-    let currentUser = document.body.dataset.username || null;
+    let currentUser = null;
     let saveTimer;
     let isApplyingWorkspace = false;
     const codeEditor = CodeMirror.fromTextArea(editor, {
@@ -225,11 +229,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       clearTimeout(saveTimer);
       saveTimer = setTimeout(async () => {
         if (activeFile) fileContents[activeFile] = codeEditor.getValue();
-        await fetch('/api/workspace', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: fileContents })
-        });
+        if (supabaseClient && currentUser) await supabaseClient.from('workspaces').upsert({ user_id: currentUser.id, files: fileContents, updated_at: new Date().toISOString() });
       }, 350);
     }
 
@@ -374,6 +374,8 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
   </script>{% endif %}
   <script>
+    const supabaseReady = window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY;
+    const supabaseClient = supabaseReady ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
     const authModal = document.querySelector('#auth-modal');
     const authForm = document.querySelector('#auth-form');
     const authMessage = document.querySelector('#auth-message');
@@ -406,27 +408,38 @@ print(f"It is {datetime.now():%A}.")</textarea>
       event.preventDefault();
       authSubmit.disabled = true;
       authMessage.textContent = 'Connecting...';
-      const response = await fetch('/api/auth/' + authMode, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(authForm))) });
-      const data = await response.json();
-      if (!response.ok) {
-        authMessage.textContent = data.error;
+      if (!supabaseClient) { authMessage.textContent = 'Supabase is not configured.'; authSubmit.disabled = false; return; }
+      const values = Object.fromEntries(new FormData(authForm));
+      const result = authMode === 'login' ? await supabaseClient.auth.signInWithPassword(values) : await supabaseClient.auth.signUp({ ...values, options: { emailRedirectTo: window.location.origin } });
+      if (result.error) {
+        authMessage.textContent = result.error.message;
         authSubmit.disabled = false;
         return;
       }
-      currentUser = data.username;
-      if (document.querySelector('#code-editor')) applyWorkspace(data.files);
+      currentUser = result.data.user;
+      if (!currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
       authMessage.textContent = '';
       hideAuthModal();
-      window.location.reload();
+      unlockSite();
+      updateAccount();
     }
 
-    document.querySelector('#account-button').addEventListener('click', showAuthModal);
+    function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
+    function updateAccount() { const button = document.querySelector('#account-button'); if (currentUser) { button.textContent = currentUser.email; button.classList.add('signed-in'); } }
+    function showProfile() { if (!currentUser) return showAuthModal(); document.querySelector('#profile-email').textContent = currentUser.email; document.querySelector('#profile-status').textContent = 'Email confirmed'; document.querySelector('#profile-modal').classList.add('open'); }
+    async function signOut() { await supabaseClient?.auth.signOut(); currentUser = null; document.body.classList.add('auth-required'); document.querySelector('#auth-gate').hidden = false; updateAccount(); document.querySelector('#profile-modal').classList.remove('open'); }
+    document.querySelector('#account-button').addEventListener('click', () => currentUser ? showProfile() : showAuthModal());
     document.querySelector('#auth-close').addEventListener('click', hideAuthModal);
     authModal.addEventListener('click', (event) => { if (event.target === authModal) hideAuthModal(); });
     document.querySelectorAll('.auth-switch').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.mode)));
     authForm.addEventListener('submit', submitAuth);
-    document.querySelector('#logout-button')?.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.reload(); });
+    document.querySelector('#logout-button')?.addEventListener('click', signOut);
+    document.querySelector('#profile-close').addEventListener('click', () => document.querySelector('#profile-modal').classList.remove('open'));
+    document.querySelector('#profile-logout').addEventListener('click', signOut);
+    document.querySelector('#auth-gate-login').addEventListener('click', showAuthModal);
+    document.querySelector('#discord-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
   </script>
+  if (supabaseClient) supabaseClient.auth.getUser().then(({ data }) => { currentUser = data.user; if (currentUser?.email_confirmed_at) { unlockSite(); updateAccount(); if (typeof loadCloudWorkspace === 'function') loadCloudWorkspace(); } else if (currentUser) signOut(); });
   {% if workbench_page %}<script>
     codeEditor.on('change', saveWorkspace);
 
@@ -475,11 +488,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       const cursor = codeEditor.getCursor();
       cursorStatus.textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
     });
-    if (currentUser) {
-      fetch('/api/workspace').then((response) => response.json()).then((data) => {
-        if (data.files) applyWorkspace(data.files);
-      });
-    }</script>{% endif %}
+    if (currentUser && supabaseClient) supabaseClient.from('workspaces').select('files').eq('user_id', currentUser.id).maybeSingle().then(({ data }) => { if (data?.files) applyWorkspace(data.files); });</script>{% endif %}
   </script>
 </body>
 </html>

@@ -81,7 +81,7 @@ def home():
 @app.get("/download/windows")
 def download_windows():
     bundle = BytesIO()
-    files = ("app.py", "requirements.txt", "README.md", "run_windows.bat", "static/styles.css", "templates/index.html")
+    files = ("app.py", "requirements.txt", "README.md", "run_windows.bat", "static/styles.css", "static/supabase-config.js", "templates/index.html")
     with ZipFile(bundle, "w", ZIP_DEFLATED) as archive:
         for relative_path in files:
             archive.write(os.path.join(os.path.dirname(__file__), relative_path), os.path.join("python-in-practice", relative_path))

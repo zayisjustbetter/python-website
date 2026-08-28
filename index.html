@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="static/styles.css">
 </head>
-<body>
+<body class="auth-required">
   <div class="page-shell">
     <header class="site-header">
       <a class="brand-lockup" href="#top" aria-label="Python in Practice home">
@@ -44,10 +44,12 @@
         <input id="auth-email" type="email" required autocomplete="email">
         <label for="auth-password">Password</label>
         <input id="auth-password" type="password" required minlength="8" autocomplete="current-password">
-        <button id="auth-submit" type="submit">Log in</button>
+        <button id="auth-submit" type="submit">Log in</button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button>
         <p class="auth-message" id="auth-message"></p>
       </form>
     </div>
+    <div class="profile-modal" id="profile-modal" aria-hidden="true"><div class="profile-dialog"><button class="auth-close" id="profile-close" type="button">×</button><p class="eyebrow">Your account</p><h2>Your <i>profile.</i></h2><p class="profile-email" id="profile-email"></p><p class="profile-status">Email confirmed</p><button class="profile-logout" id="profile-logout" type="button">Log out</button></div></div>
+    <div class="auth-gate" id="auth-gate"><p class="eyebrow">Members only</p><h2>Confirm your<br><i>email.</i></h2><p>Check your inbox to unlock the Python workbench and site.</p><button class="auth-gate-button" id="auth-gate-login" type="button">Log in or create an account <span>↗</span></button></div>
 
     <main id="top">
       <section class="hero section-pad">
@@ -118,6 +120,9 @@
     let currentUser = null;
     let authMode = 'login';
 
+    function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
+    function showProfile() { document.querySelector('#profile-email').textContent = currentUser.email; document.querySelector('#profile-modal').classList.add('open'); }
+
     function updateAuth() {
       authButton.textContent = currentUser ? (currentUser.email || 'Account') : 'Log in';
       authButton.innerHTML = currentUser ? (currentUser.email || 'Account') : 'Log in <span aria-hidden="true">↗</span>';
@@ -160,9 +165,11 @@
         return;
       }
       currentUser = result.data.user;
+      if (!currentUser.email_confirmed_at) { authMessage.textContent = 'Check your email to confirm your account before continuing.'; authSubmit.disabled = false; return; }
       authSubmit.disabled = false;
       hideAuth();
       updateAuth();
+      unlockSite();
     }
 
     toggle.addEventListener('click', () => {
@@ -176,21 +183,28 @@
     }));
     document.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
 
-    authButton.addEventListener('click', () => showAuth(currentUser ? 'login' : authMode));
+    authButton.addEventListener('click', () => currentUser ? showProfile() : showAuth(authMode));
     logoutButton.addEventListener('click', async () => {
       if (supabaseClient) await supabaseClient.auth.signOut();
       currentUser = null;
       updateAuth();
+      document.body.classList.add('auth-required');
+      document.querySelector('#auth-gate').hidden = false;
     });
     document.querySelector('#auth-close').addEventListener('click', hideAuth);
     document.querySelector('#auth-switch').addEventListener('click', () => showAuth(authMode === 'login' ? 'register' : 'login'));
     document.querySelector('#auth-switch-login').addEventListener('click', () => showAuth('login'));
     authPanel.addEventListener('click', (event) => { if (event.target === authPanel) hideAuth(); });
     authForm.addEventListener('submit', submitAuth);
+    document.querySelector('#profile-close').addEventListener('click', () => document.querySelector('#profile-modal').classList.remove('open'));
+    document.querySelector('#profile-logout').addEventListener('click', () => logoutButton.click());
+    document.querySelector('#auth-gate-login').addEventListener('click', () => showAuth('login'));
+    document.querySelector('#discord-login').addEventListener('click', async () => { const result = await supabaseClient?.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } }); if (result?.error) authMessage.textContent = result.error.message; });
 
     if (supabaseClient) {
-      supabaseClient.auth.getUser().then(({ data }) => {
+      supabaseClient.auth.getUser().then(async ({ data }) => {
         currentUser = data.user;
+        if (currentUser?.email_confirmed_at) unlockSite(); else if (currentUser) { await supabaseClient.auth.signOut(); currentUser = null; }
         updateAuth();
       });
     } else {
