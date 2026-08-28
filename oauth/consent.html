@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Consent</title>
+</head>
+<body>
+    <h1>OAuth Consent</h1>
+    <p>You are about to grant the following permissions:</p>
+    <ul>
+        <li>View your profile information</li>
+        <li>Access your email address</li>
+    </ul>
+    <form action="/oauth/authorize" method="post">
+        <input type="hidden" name="client_id" value="your_client_id">
+        <input type="hidden" name="redirect_uri" value="your_redirect_uri">
+        <input type="hidden" name="response_type" value="code">
+        <button type="submit">Accept</button>
+    </form>
+</body>
+</html>
