@@ -36,6 +36,16 @@
         <div class="lesson-pagination" id="lesson-pagination" aria-label="Lesson pages"></div>
       </section>
     </main>
+    <div class="lesson-modal" id="lesson-modal" aria-hidden="true">
+      <article class="lesson-dialog" role="dialog" aria-modal="true" aria-labelledby="lesson-modal-title">
+        <button class="lesson-modal-close" id="lesson-modal-close" type="button" aria-label="Close lesson">×</button>
+        <p class="eyebrow" id="lesson-modal-level"></p>
+        <h2 id="lesson-modal-title"></h2>
+        <p class="lesson-modal-detail" id="lesson-modal-detail"></p>
+        <pre class="lesson-example" id="lesson-example"></pre>
+        <a class="lesson-start" href="{{ url_for('workbench') }}">Try this in the Workbench <span aria-hidden="true">↗</span></a>
+      </article>
+    </div>
     <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="{{ url_for('home') }}#top">Back to home ↑</a></footer>
   </div>
   <script>
@@ -60,7 +70,19 @@
     let page = 1;
     [...new Set(lessons.map((lesson) => lesson.topic))].sort().forEach((name) => topic.insertAdjacentHTML('beforeend', `<option>${name}</option>`));
     function filteredLessons() { const query = search.value.trim().toLowerCase(); return lessons.filter((lesson) => (level.value === 'all' || lesson.level === level.value) && (topic.value === 'all' || lesson.topic === topic.value) && (!query || `${lesson.title} ${lesson.detail} ${lesson.level}`.toLowerCase().includes(query))); }
-    function render() { const results = filteredLessons(); const pages = Math.max(1, Math.ceil(results.length / pageSize)); page = Math.min(page, pages); const visible = results.slice((page - 1) * pageSize, page * pageSize); count.textContent = `${results.length.toLocaleString()} lessons · page ${page} of ${pages}`; grid.innerHTML = visible.map((lesson) => `<article class="lesson-card"><span class="lesson-number">${String(lesson.order).padStart(4, '0')}</span><h2>${lesson.title}</h2><p>${lesson.detail}</p><div class="lesson-meta"><span>${lesson.level}</span><span>${lesson.topic}</span></div></article>`).join(''); pagination.innerHTML = `<button type="button" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''} aria-label="Previous page">←</button><span class="lesson-page-label">${page} / ${pages}</span><button type="button" data-page="${page + 1}" ${page === pages ? 'disabled' : ''} aria-label="Next page">→</button>`; }
+    function render() { const results = filteredLessons(); const pages = Math.max(1, Math.ceil(results.length / pageSize)); page = Math.min(page, pages); const visible = results.slice((page - 1) * pageSize, page * pageSize); count.textContent = `${results.length.toLocaleString()} lessons · page ${page} of ${pages}`; grid.innerHTML = visible.map((lesson) => `<article class="lesson-card" data-lesson="${lesson.order}" role="button" tabindex="0" aria-label="Open lesson: ${lesson.title}"><span class="lesson-number">${String(lesson.order).padStart(4, '0')}</span><h2>${lesson.title}</h2><p>${lesson.detail}</p><div class="lesson-meta"><span>${lesson.level}</span><span>${lesson.topic}</span></div></article>`).join(''); pagination.innerHTML = `<button type="button" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''} aria-label="Previous page">←</button><span class="lesson-page-label">${page} / ${pages}</span><button type="button" data-page="${page + 1}" ${page === pages ? 'disabled' : ''} aria-label="Next page">→</button>`; }
+    const lessonModal = document.querySelector('#lesson-modal');
+    const lessonTitle = document.querySelector('#lesson-modal-title');
+    const lessonLevel = document.querySelector('#lesson-modal-level');
+    const lessonDetail = document.querySelector('#lesson-modal-detail');
+    const lessonExample = document.querySelector('#lesson-example');
+    function openLesson(lesson) { lessonTitle.textContent = lesson.title; lessonLevel.textContent = `${lesson.level} / ${lesson.topic}`; lessonDetail.textContent = `${lesson.detail} In this lesson, you will make the idea concrete, read the pattern, and then adapt it in your own code.`; lessonExample.textContent = `# ${lesson.topic}\nprint("Start with a small example")\n\n# Build on it one useful step at a time`; lessonModal.setAttribute('aria-hidden', 'false'); lessonModal.classList.add('open'); document.querySelector('#lesson-modal-close').focus(); }
+    function closeLesson() { lessonModal.setAttribute('aria-hidden', 'true'); lessonModal.classList.remove('open'); }
+    grid.addEventListener('click', (event) => { const card = event.target.closest('.lesson-card'); if (card) openLesson(lessons.find((lesson) => lesson.order === Number(card.dataset.lesson))); });
+    grid.addEventListener('keydown', (event) => { if (event.key !== 'Enter' && event.key !== ' ') return; const card = event.target.closest('.lesson-card'); if (!card) return; event.preventDefault(); openLesson(lessons.find((lesson) => lesson.order === Number(card.dataset.lesson))); });
+    document.querySelector('#lesson-modal-close').addEventListener('click', closeLesson);
+    lessonModal.addEventListener('click', (event) => { if (event.target === lessonModal) closeLesson(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && lessonModal.classList.contains('open')) closeLesson(); });
     [search, level, topic].forEach((control) => control.addEventListener('input', () => { page = 1; render(); }));
     pagination.addEventListener('click', (event) => { const nextPage = Number(event.target.dataset.page); if (nextPage) { page = nextPage; render(); window.scrollTo({ top: document.querySelector('.lesson-toolbar').offsetTop - 30, behavior: 'smooth' }); } });
     const menu = document.querySelector('.menu-toggle'); const nav = document.querySelector('.site-nav'); menu.addEventListener('click', () => { const open = menu.getAttribute('aria-expanded') === 'true'; menu.setAttribute('aria-expanded', String(!open)); nav.classList.toggle('is-open', !open); });
