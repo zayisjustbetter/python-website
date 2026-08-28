@@ -94,6 +94,11 @@ def workbench():
     return render_template("index.html", submitted=False, username=session.get("username"), workbench_page=True)
 
 
+@app.get("/lessons")
+def lessons():
+    return render_template("lessons.html")
+
+
 @app.post("/api/auth/register")
 def register():
     payload = request.get_json(silent=True) or {}
