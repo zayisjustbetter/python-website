@@ -3,7 +3,7 @@ const curriculum = {
     'Variables and values': {
       lessons: ['Names point to objects', 'Choose clear names', 'Update a value', 'Inspect a value', 'Convert between types', 'Avoid accidental aliasing'],
       explain: 'Variables are names bound to objects. Python looks up the current object when the name is used; assignment changes the binding.',
-      example: 'name = "Ada"\nage = 36\nprint(f"{name} is {age}")',
+      example: 'name = "Ada"\nage = 36\nprint(f"{name} is {age}")\n# This will print: Ada is 36',
       task: 'Create name, city, and birth_year variables, then print a sentence using them.'
     },
     'Strings and text': {
