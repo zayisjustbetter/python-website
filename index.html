@@ -121,11 +121,23 @@
     let authMode = 'login';
 
     function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
-    function showProfile() { document.querySelector('#profile-email').textContent = currentUser.email; document.querySelector('#profile-modal').classList.add('open'); }
+    function showProfile() { document.querySelector('#profile-email').textContent = displayEmail(currentUser); document.querySelector('#profile-modal').classList.add('open'); }
+
+    function isDiscordUser(user) {
+      return user?.app_metadata?.provider === 'discord' || user?.identities?.some((identity) => identity.provider === 'discord');
+    }
+
+    function displayEmail(user) {
+      if (!isDiscordUser(user)) return user?.email || 'Account';
+      const discordIdentity = user.identities?.find((identity) => identity.provider === 'discord');
+      const metadata = { ...discordIdentity?.identity_data, ...user.user_metadata };
+      const username = metadata.user_name || metadata.preferred_username || metadata.username || metadata.global_name || metadata.full_name || 'user';
+      return `${String(username).trim().replace(/[^a-zA-Z0-9._-]/g, '_')}@discord.com`;
+    }
 
     function updateAuth() {
-      authButton.textContent = currentUser ? (currentUser.email || 'Account') : 'Log in';
-      authButton.innerHTML = currentUser ? (currentUser.email || 'Account') : 'Log in <span aria-hidden="true">↗</span>';
+      authButton.textContent = currentUser ? displayEmail(currentUser) : 'Log in';
+      authButton.innerHTML = currentUser ? displayEmail(currentUser) : 'Log in <span aria-hidden="true">↗</span>';
       logoutButton.hidden = !currentUser;
       if (!supabaseReady) authButton.title = 'Add your Supabase URL and anon key to enable accounts';
     }
@@ -142,7 +154,7 @@
     }
 
     function needsEmailConfirmation(user) {
-      return user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email');
+      return !isDiscordUser(user) && (user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email'));
     }
 
     function hideAuth() {

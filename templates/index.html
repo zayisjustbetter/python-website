@@ -405,7 +405,19 @@ print(f"It is {datetime.now():%A}.")</textarea>
     }
 
     function needsEmailConfirmation(user) {
-      return user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email');
+      return !isDiscordUser(user) && (user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email'));
+    }
+
+    function isDiscordUser(user) {
+      return user?.app_metadata?.provider === 'discord' || user?.identities?.some((identity) => identity.provider === 'discord');
+    }
+
+    function displayEmail(user) {
+      if (!isDiscordUser(user)) return user?.email || 'Account';
+      const discordIdentity = user.identities?.find((identity) => identity.provider === 'discord');
+      const metadata = { ...discordIdentity?.identity_data, ...user.user_metadata };
+      const username = metadata.user_name || metadata.preferred_username || metadata.username || metadata.global_name || metadata.full_name || 'user';
+      return `${String(username).trim().replace(/[^a-zA-Z0-9._-]/g, '_')}@discord.com`;
     }
 
     async function submitAuth(event) {
@@ -430,8 +442,8 @@ print(f"It is {datetime.now():%A}.")</textarea>
     }
 
     function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
-    function updateAccount() { const button = document.querySelector('#account-button'); if (currentUser) { button.textContent = currentUser.email; button.classList.add('signed-in'); } }
-    function showProfile() { if (!currentUser) return showAuthModal(); document.querySelector('#profile-email').textContent = currentUser.email; document.querySelector('#profile-status').textContent = 'Email confirmed'; document.querySelector('#profile-modal').classList.add('open'); }
+    function updateAccount() { const button = document.querySelector('#account-button'); if (currentUser) { button.textContent = displayEmail(currentUser); button.classList.add('signed-in'); } }
+    function showProfile() { if (!currentUser) return showAuthModal(); document.querySelector('#profile-email').textContent = displayEmail(currentUser); document.querySelector('#profile-status').textContent = isDiscordUser(currentUser) ? 'Discord account' : 'Email confirmed'; document.querySelector('#profile-modal').classList.add('open'); }
     async function signOut() { await supabaseClient?.auth.signOut(); currentUser = null; document.body.classList.add('auth-required'); document.querySelector('#auth-gate').hidden = false; updateAccount(); document.querySelector('#profile-modal').classList.remove('open'); }
     document.querySelector('#account-button').addEventListener('click', () => currentUser ? showProfile() : showAuthModal());
     document.querySelector('#auth-close').addEventListener('click', hideAuthModal);
