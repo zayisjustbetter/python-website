@@ -37,9 +37,20 @@
         <div class="lesson-pagination" id="lesson-pagination" aria-label="Lesson pages"></div>
       </section>
     </main>
+    <div class="lesson-modal" id="lesson-modal" aria-hidden="true">
+      <article class="lesson-dialog" role="dialog" aria-modal="true" aria-labelledby="lesson-modal-title">
+        <button class="lesson-modal-close" id="lesson-modal-close" type="button" aria-label="Close lesson">×</button>
+        <p class="eyebrow" id="lesson-modal-level"></p>
+        <h2 id="lesson-modal-title"></h2>
+        <p class="lesson-modal-detail" id="lesson-modal-detail"></p>
+        <pre class="lesson-example" id="lesson-example"></pre>
+        <a class="lesson-start" href="workbench.html">Try this in the Workbench <span aria-hidden="true">↗</span></a>
+      </article>
+    </div>
     <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="index.html#top">Back to home ↑</a></footer>
   </div>
-  <script>
+  <script src="static/lessons.js"></script>
+  <script type="application/legacy-javascript">
     const topicSets = {
       Beginner: ['Variables and values', 'Strings and text', 'Numbers and arithmetic', 'Conditions and decisions', 'Loops and repetition', 'Functions and arguments', 'Lists and sequences', 'Dictionaries and records'],
       Core: ['Files and paths', 'Errors and debugging', 'Modules and imports', 'Classes and objects', 'Testing with pytest', 'Data validation', 'Comprehensions', 'Command-line tools'],

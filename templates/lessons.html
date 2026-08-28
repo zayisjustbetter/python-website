@@ -48,7 +48,8 @@
     </div>
     <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="{{ url_for('home') }}#top">Back to home ↑</a></footer>
   </div>
-  <script>
+  <script src="{{ url_for('static', filename='lessons.js') }}"></script>
+  <script type="application/legacy-javascript">
     const topicSets = {
       Beginner: ['Variables and values', 'Strings and text', 'Numbers and arithmetic', 'Conditions and decisions', 'Loops and repetition', 'Functions and arguments', 'Lists and sequences', 'Dictionaries and records'],
       Core: ['Files and paths', 'Errors and debugging', 'Modules and imports', 'Classes and objects', 'Testing with pytest', 'Data validation', 'Comprehensions', 'Command-line tools'],
