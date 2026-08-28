@@ -23,15 +23,37 @@
         <a href="#field-notes">Field notes</a>
         <a href="#contact">Say hello <span aria-hidden="true">↗</span></a>
       </nav>
-      <a class="account-button" href="https://github.com/zayzayistuffer/python-website">View source <span aria-hidden="true">↗</span></a>
+      <div class="account-area">
+        <button class="account-button" id="auth-button" type="button">Log in <span aria-hidden="true">↗</span></button>
+        <button class="logout-button" id="logout-button" type="button" hidden>Log out</button>
+        <a class="account-button" href="https://github.com/zayzayistuffer/python-website">View source <span aria-hidden="true">↗</span></a>
+      </div>
       <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
     </header>
+
+    <div class="auth-panel" id="auth-panel">
+      <form class="auth-box" id="auth-form">
+        <button class="auth-close" id="auth-close" type="button" aria-label="Close login">×</button>
+        <p class="eyebrow">Your workspace</p>
+        <h2 id="auth-title">Keep your work close to you</h2>
+        <div class="auth-switcher">
+          <button class="auth-switch active" id="auth-switch-login" type="button" data-mode="login">Log in</button>
+          <button class="auth-switch" id="auth-switch" type="button" data-mode="register">Create account</button>
+        </div>
+        <label for="auth-email">Email address</label>
+        <input id="auth-email" type="email" required autocomplete="email">
+        <label for="auth-password">Password</label>
+        <input id="auth-password" type="password" required minlength="8" autocomplete="current-password">
+        <button id="auth-submit" type="submit">Log in</button>
+        <p class="auth-message" id="auth-message"></p>
+      </form>
+    </div>
 
     <main id="top">
       <section class="hero section-pad">
         <div class="hero-copy reveal">
           <p class="eyebrow"><span class="eyebrow-dot"></span> An independent guide for builders</p>
-          <h1>Make it clear.<br><i>Make it last.</i></h1>
+          <h1>Learn how to code in python!</h1>
           <p class="hero-intro">A considered approach to Python, product thinking, and the small decisions that turn good code into useful software.</p>
           <a class="text-link" href="#principles">Explore the principles <span aria-hidden="true">↓</span></a>
         </div>
@@ -79,9 +101,70 @@
 
     <footer class="site-footer"><span>© 2026 Python in Practice</span><span>Made with intention + Python</span><a href="#top">Back to top ↑</a></footer>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script>
     const toggle = document.querySelector('.menu-toggle');
     const nav = document.querySelector('.site-nav');
+    const authButton = document.querySelector('#auth-button');
+    const authPanel = document.querySelector('#auth-panel');
+    const authForm = document.querySelector('#auth-form');
+    const authSubmit = document.querySelector('#auth-submit');
+    const authMessage = document.querySelector('#auth-message');
+    const authTitle = document.querySelector('#auth-title');
+    const logoutButton = document.querySelector('#logout-button');
+    const supabaseReady = window.supabase && !window.SUPABASE_URL.startsWith('YOUR_') && !window.SUPABASE_ANON_KEY.startsWith('YOUR_');
+    const supabaseClient = supabaseReady ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null;
+    let currentUser = null;
+    let authMode = 'login';
+
+    function updateAuth() {
+      authButton.textContent = currentUser ? (currentUser.email || 'Account') : 'Log in';
+      authButton.innerHTML = currentUser ? (currentUser.email || 'Account') : 'Log in <span aria-hidden="true">↗</span>';
+      logoutButton.hidden = !currentUser;
+      if (!supabaseReady) authButton.title = 'Add your Supabase URL and anon key to enable accounts';
+    }
+
+    function showAuth(mode) {
+      authMode = mode;
+      document.querySelectorAll('.auth-switch').forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+      authTitle.innerHTML = mode === 'login' ? 'Keep your work<br><i>close.</i>' : 'Make a home<br><i>for ideas.</i>';
+      authSubmit.textContent = mode === 'login' ? 'Log in' : 'Create account';
+      document.querySelector('#auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+      authPanel.classList.add('open');
+      authMessage.textContent = '';
+      document.querySelector('#auth-email').focus();
+    }
+
+    function hideAuth() {
+      authPanel.classList.remove('open');
+      authMessage.textContent = '';
+    }
+
+    async function submitAuth(event) {
+      event.preventDefault();
+      const email = document.querySelector('#auth-email').value.trim();
+      const password = document.querySelector('#auth-password').value;
+      if (!supabaseClient) {
+        authMessage.textContent = 'Add your Supabase URL and anon key first.';
+        return;
+      }
+      authSubmit.disabled = true;
+      authMessage.textContent = 'Connecting...';
+      const result = authMode === 'login'
+        ? await supabaseClient.auth.signInWithPassword({ email, password })
+        : await supabaseClient.auth.signUp({ email, password });
+      if (result.error) {
+        authMessage.textContent = result.error.message;
+        authSubmit.disabled = false;
+        return;
+      }
+      currentUser = result.data.user;
+      authSubmit.disabled = false;
+      hideAuth();
+      updateAuth();
+    }
+
     toggle.addEventListener('click', () => {
       const open = toggle.getAttribute('aria-expanded') === 'true';
       toggle.setAttribute('aria-expanded', String(!open));
@@ -92,6 +175,27 @@
       nav.classList.remove('is-open');
     }));
     document.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
+
+    authButton.addEventListener('click', () => showAuth(currentUser ? 'login' : authMode));
+    logoutButton.addEventListener('click', async () => {
+      if (supabaseClient) await supabaseClient.auth.signOut();
+      currentUser = null;
+      updateAuth();
+    });
+    document.querySelector('#auth-close').addEventListener('click', hideAuth);
+    document.querySelector('#auth-switch').addEventListener('click', () => showAuth(authMode === 'login' ? 'register' : 'login'));
+    document.querySelector('#auth-switch-login').addEventListener('click', () => showAuth('login'));
+    authPanel.addEventListener('click', (event) => { if (event.target === authPanel) hideAuth(); });
+    authForm.addEventListener('submit', submitAuth);
+
+    if (supabaseClient) {
+      supabaseClient.auth.getUser().then(({ data }) => {
+        currentUser = data.user;
+        updateAuth();
+      });
+    } else {
+      updateAuth();
+    }
   </script>
 </body>
 </html>

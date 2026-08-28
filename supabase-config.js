@@ -1,2 +1,2 @@
-window.SUPABASE_URL = "https://dspekjjhhzonhyzlghkn.supabase.co/rest/v1/L";
-window.SUPABASE_ANON_KEY = "sb_publishable_zfV0pxkqrW6ij8QZ6pFbTg_qd5hXPOV";
+window.SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+window.SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
