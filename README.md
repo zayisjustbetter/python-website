@@ -17,6 +17,15 @@ Open http://127.0.0.1:5000 in your browser.
 
 The public website is hosted on GitHub Pages at https://code.pip.abrdns.com. The landing page and browser workbench are static Pages-compatible files. The workbench runs Python in the browser and stores files locally in that browser; Flask is used for the Windows app and optional server deployment.
 
+### Enable website accounts
+
+1. Create a project at https://supabase.com.
+2. In **SQL Editor**, run `supabase-schema.sql`.
+3. Copy the project URL and public anon key from **Project Settings** → **API** into `supabase-config.js`.
+4. Commit and push the updated config; GitHub Pages will redeploy the site.
+
+The anon key is intended for browser use. Row-level security in the included schema limits each user to their own workspace.
+
 ## Windows download
 
 Use the **Windows download** link on the website to download the source ZIP package. Extract it, then double-click `run_windows.bat`.
