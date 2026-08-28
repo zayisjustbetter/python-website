@@ -44,7 +44,11 @@
         <h2 id="lesson-modal-title"></h2>
         <p class="lesson-modal-detail" id="lesson-modal-detail"></p>
         <pre class="lesson-example" id="lesson-example"></pre>
-        <a class="lesson-start" href="workbench.html">Try this in the Workbench <span aria-hidden="true">↗</span></a>
+        <label for="lesson-answer">Recreate the example to continue</label>
+        <textarea class="lesson-answer" id="lesson-answer" rows="6" spellcheck="false" placeholder="Write the Python code here..."></textarea>
+        <button class="lesson-check" id="lesson-check" type="button">Check code</button>
+        <p class="lesson-feedback" id="lesson-feedback" role="status"></p>
+        <a class="lesson-start" id="lesson-start" href="workbench.html" aria-disabled="true" tabindex="-1">Continue to the Workbench <span aria-hidden="true">↗</span></a>
       </article>
     </div>
     <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="index.html#top">Back to home ↑</a></footer>

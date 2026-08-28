@@ -1,3 +1,4 @@
+ .lesson-dialog label { display: block; margin-bottom: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }.lesson-answer { width: 100%; min-height: 120px; padding: 13px; resize: vertical; border: 1px solid var(--line); outline: 0; background: #fffdf8; color: var(--ink); font: 12px/1.7 var(--mono); }.lesson-answer:focus { border-color: var(--coral); }.lesson-check { width: 100%; margin-top: 10px; padding: 13px; border: 0; background: var(--ink); color: var(--paper); cursor: pointer; font: 600 11px var(--mono); }.lesson-feedback { min-height: 18px; margin: 11px 0 0; color: #bd5948; font: 11px var(--mono); }.lesson-feedback.is-correct { color: #448b75; }.lesson-start { margin-top: 17px; color: var(--muted); pointer-events: none; }.lesson-start.is-unlocked { color: var(--ink); pointer-events: auto; }
 :root {
   --ink: #202321;
   --muted: #6d716c;
