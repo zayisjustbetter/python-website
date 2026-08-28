@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Over 1,000 practical Python lessons, from first steps to advanced engineering.">
+  <title>Lessons | Python in Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand-lockup" href="index.html#top" aria-label="Python in Practice home"><img src="https://www.python.org/static/community_logos/python-logo.png" alt="Python logo"><span>Python in Practice</span></a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="workbench.html">Workbench</a>
+        <a href="lessons.html" aria-current="page">Lessons</a>
+        <a href="discord.html">Discord</a>
+        <a href="index.html#principles">Principles</a>
+        <a href="index.html#field-notes">Field notes</a>
+        <a href="index.html#contact">Say hello <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
+    </header>
+
+    <main class="lessons-page">
+      <section class="lessons-intro">
+        <div><p class="eyebrow"><span class="eyebrow-dot"></span> The curriculum</p><h1>Learn Python<br><i>one useful idea at a time.</i></h1></div>
+        <p class="lessons-intro-copy">Learn Python with 1,152 practical lessons, from first steps to advanced engineering.</p>
+      </section>
+      <section aria-label="Python lesson library">
+        <div class="lesson-toolbar"><input class="lesson-control" id="lesson-search" type="search" placeholder="Search lessons..." aria-label="Search lessons"><select class="lesson-control" id="lesson-level" aria-label="Filter by level"><option value="all">All levels</option><option>Beginner</option><option>Core</option><option>Intermediate</option><option>Advanced</option></select><select class="lesson-control" id="lesson-topic" aria-label="Filter by topic"><option value="all">All topics</option></select></div>
+        <p class="lesson-count" id="lesson-count" aria-live="polite"></p>
+        <div class="lesson-grid" id="lesson-grid"></div>
+        <div class="lesson-pagination" id="lesson-pagination" aria-label="Lesson pages"></div>
+      </section>
+    </main>
+    <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="index.html#top">Back to home ↑</a></footer>
+  </div>
+  <script>
+    const topicSets = {
+      Beginner: ['Variables and values', 'Strings and text', 'Numbers and arithmetic', 'Conditions and decisions', 'Loops and repetition', 'Functions and arguments', 'Lists and sequences', 'Dictionaries and records'],
+      Core: ['Files and paths', 'Errors and debugging', 'Modules and imports', 'Classes and objects', 'Testing with pytest', 'Data validation', 'Comprehensions', 'Command-line tools'],
+      Intermediate: ['Decorators and closures', 'Generators and iterators', 'Type hints', 'Dataclasses', 'Async programming', 'APIs and JSON', 'SQL with Python', 'Performance basics'],
+      Advanced: ['Concurrency patterns', 'Packaging projects', 'Security essentials', 'Architecture', 'Protocols and descriptors', 'Profiling and optimization', 'Deployment', 'Reliable services']
+    };
+    const actions = ['Read values from', 'Build a small tool with', 'Debug a real example using', 'Refactor a script with', 'Practice a pattern for', 'Design a clean solution with'];
+    const lessons = [];
+    Object.entries(topicSets).forEach(([level, topics], levelIndex) => topics.forEach((topic, topicIndex) => actions.forEach((action, actionIndex) => {
+      for (let variation = 0; variation < 6; variation += 1) lessons.push({ level, topic, title: `${action} ${topic.toLowerCase()}`, detail: `A focused exercise ${variation + 1} for turning ${topic.toLowerCase()} into dependable Python.`, order: levelIndex * 288 + topicIndex * 36 + actionIndex * 6 + variation + 1 });
+    })));
+    const search = document.querySelector('#lesson-search');
+    const level = document.querySelector('#lesson-level');
+    const topic = document.querySelector('#lesson-topic');
+    const grid = document.querySelector('#lesson-grid');
+    const count = document.querySelector('#lesson-count');
+    const pagination = document.querySelector('#lesson-pagination');
+    const pageSize = 24;
+    let page = 1;
+    [...new Set(lessons.map((lesson) => lesson.topic))].sort().forEach((name) => topic.insertAdjacentHTML('beforeend', `<option>${name}</option>`));
+    function filteredLessons() { const query = search.value.trim().toLowerCase(); return lessons.filter((lesson) => (level.value === 'all' || lesson.level === level.value) && (topic.value === 'all' || lesson.topic === topic.value) && (!query || `${lesson.title} ${lesson.detail} ${lesson.level}`.toLowerCase().includes(query))); }
+    function render() { const results = filteredLessons(); const pages = Math.max(1, Math.ceil(results.length / pageSize)); page = Math.min(page, pages); const visible = results.slice((page - 1) * pageSize, page * pageSize); count.textContent = `${results.length.toLocaleString()} lessons · page ${page} of ${pages}`; grid.innerHTML = visible.map((lesson) => `<article class="lesson-card"><span class="lesson-number">${String(lesson.order).padStart(4, '0')}</span><h2>${lesson.title}</h2><p>${lesson.detail}</p><div class="lesson-meta"><span>${lesson.level}</span><span>${lesson.topic}</span></div></article>`).join(''); pagination.innerHTML = `<button type="button" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''} aria-label="Previous page">←</button><span class="lesson-page-label">${page} / ${pages}</span><button type="button" data-page="${page + 1}" ${page === pages ? 'disabled' : ''} aria-label="Next page">→</button>`; }
+    [search, level, topic].forEach((control) => control.addEventListener('input', () => { page = 1; render(); }));
+    pagination.addEventListener('click', (event) => { const nextPage = Number(event.target.dataset.page); if (nextPage) { page = nextPage; render(); window.scrollTo({ top: document.querySelector('.lesson-toolbar').offsetTop - 30, behavior: 'smooth' }); } });
+    const menu = document.querySelector('.menu-toggle'); const nav = document.querySelector('.site-nav'); menu.addEventListener('click', () => { const open = menu.getAttribute('aria-expanded') === 'true'; menu.setAttribute('aria-expanded', String(!open)); nav.classList.toggle('is-open', !open); });
+    render();
+  </script>
+</body>
+</html>
