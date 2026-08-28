@@ -329,22 +329,22 @@ print(f"It is {datetime.now():%A}.")</textarea>
       try {
         if (typeof window.loadPyodide !== 'function') throw new Error('Python loader was not found.');
         pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/' });
-        runtimeLabel.textContent = 'Python 3.13 ready';
-        runtimeStatus.classList.add('ready');
+        if (runtimeLabel) runtimeLabel.textContent = 'Python 3.13 ready';
+        if (runtimeStatus) runtimeStatus.classList.add('ready');
         updateEditorState();
       } catch (error) {
-        runtimeLabel.textContent = 'Runtime unavailable';
+        if (runtimeLabel) runtimeLabel.textContent = 'Runtime unavailable';
         output.textContent = 'Python could not be loaded. Check your connection and try again.';
       }
     };
     script.onerror = () => {
-      runtimeLabel.textContent = 'Runtime unavailable';
+      if (runtimeLabel) runtimeLabel.textContent = 'Runtime unavailable';
       output.textContent = 'Python could not be loaded. Check your connection and try again.';
     };
     document.head.appendChild(script);
 
     async function runCode() {
-      if (!pyodide || !activeFile.endsWith('.py')) return;
+      if (!pyodide || !activeFile || !activeFile.endsWith('.py')) return;
       runButton.disabled = true;
       runButton.innerHTML = '<span class="spinner"></span> Running';
       output.classList.remove('error');
@@ -360,7 +360,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         output.classList.add('error');
       } finally {
         runButton.disabled = false;
-        runButton.innerHTML = '<span>▶</span> Run code';
+        runButton.innerHTML = '<span>▶</span> Run Python';
       }
     }
 
@@ -470,6 +470,13 @@ print(f"It is {datetime.now():%A}.")</textarea>
         output.textContent = 'This is a project folder, not an editable file.';
         return;
       }
+      selectFile(item.dataset.file);
+    });
+    document.querySelector('#file-list').addEventListener('contextmenu', (event) => {
+      const item = event.target.closest('.file-item');
+      if (!item || item.dataset.file === '.venv') return;
+      event.preventDefault();
+      event.stopPropagation();
       selectFile(item.dataset.file);
       openFileMenu(item.dataset.file, item);
     });
