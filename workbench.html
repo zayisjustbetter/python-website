@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workbench | Python in Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-palenight.min.css">
+  <link rel="stylesheet" href="static/styles.css">
+  <style>main{padding:70px 0 120px}.workbench{border-top:0}.workbench-heading{margin-bottom:42px}.site-header{margin-bottom:0}.file-menu{top:75px}</style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand-lockup" href="index.html#top" aria-label="Python in Practice home"><img src="https://www.python.org/static/community_logos/python-logo.png" alt="Python logo"><span>Python in Practice</span></a>
+      <nav class="site-nav" aria-label="Main navigation"><a href="index.html#principles">Principles</a><a href="index.html#field-notes">Field notes</a><a href="index.html#contact">Say hello <span aria-hidden="true">↗</span></a></nav>
+      <a class="account-button" href="index.html">Home <span aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
+    </header>
+    <main id="top">
+      <section class="workbench section-pad" id="workbench">
+        <div class="workbench-heading reveal"><div><p class="eyebrow"><span class="eyebrow-dot"></span> The workbench</p><h1>Build it<br><i>here.</i></h1></div><p>Write, run, and experiment with Python in your browser. Your files stay in this browser on this device.</p></div>
+        <div class="playground reveal">
+          <div class="ide-titlebar"><div class="traffic-lights"><span></span><span></span><span></span></div><span class="ide-title">python-in-practice <b>—</b> CodeSpace</span><span class="ide-actions">⌁ &nbsp; □ &nbsp; •••</span></div>
+          <div class="ide-body"><aside class="file-rail"><div class="rail-heading">EXPLORER</div><div class="project-name"><span>⌄</span> PYTHON-IN-PRACTICE</div><div id="file-list"></div><div class="file-menu" id="file-menu" hidden><button data-action="duplicate">Duplicate</button><button data-action="rename">Rename</button><button data-action="download">Download</button><button data-action="delete">Delete</button></div><div class="rail-footer">▣ &nbsp; local files<br>◌ &nbsp; browser storage</div></aside>
+            <div class="editor-column"><div class="editor-tabs" id="editor-tabs"><button class="editor-tab-add" id="new-file" type="button" aria-label="Create new Python file">+</button></div><label class="sr-only" for="code-editor">Python code editor</label><textarea id="code-editor" spellcheck="false"></textarea><div class="playground-actions"><span class="branch-label">⎇ local</span><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Run Python</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div><div class="output-panel"><div class="output-label"><span class="terminal-symbol">›_</span> Terminal <span id="run-time"></span></div><pre id="code-output">Loading Python...</pre></div></div>
+          </div><div class="ide-statusbar"><span id="language-status">◉ &nbsp; Python</span><span>Spaces: 4 &nbsp; UTF-8 &nbsp; LF</span><span id="cursor-status">Ln 1, Col 1</span></div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="index.html#top">Back to home ↑</a></footer>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script>
+    const starter = 'from datetime import datetime\n\ndef greet(name):\n    return f"Hello, {name}."\n\nprint(greet("curious human"))\nprint(f"It is {datetime.now():%A}.")';
+    const stored = JSON.parse(localStorage.getItem('python-in-practice-files') || 'null');
+    const files = stored || {'scratch.py': starter, 'README.md': '# Python in Practice\n'};
+    let activeFile = Object.keys(files)[0] || 'scratch.py';
+    let initialContent = files[activeFile] || '';
+    let pyodide;
+    const editor = CodeMirror.fromTextArea(document.querySelector('#code-editor'), {mode:'python', theme:'material-palenight', lineNumbers:true, indentUnit:4, tabSize:4, extraKeys:{'Ctrl-Enter':runCode,'Cmd-Enter':runCode}});
+    const fileList = document.querySelector('#file-list'), tabs = document.querySelector('#editor-tabs'), menu = document.querySelector('#file-menu'), output = document.querySelector('#code-output'), run = document.querySelector('#run-code');
+    function save(){files[activeFile]=editor.getValue();localStorage.setItem('python-in-practice-files',JSON.stringify(files));}
+    function render(){fileList.innerHTML='';Object.keys(files).forEach(name=>{const b=document.createElement('button');b.className='file-item'+(name===activeFile?' active':'');b.dataset.file=name;b.type='button';b.innerHTML='<span class="python-file">◆</span> '+name;fileList.appendChild(b)});tabs.querySelectorAll('.editor-tab').forEach(t=>t.remove());const tab=document.createElement('button');tab.className='editor-tab active';tab.innerHTML='<span class="python-file">◆</span> <span class="tab-name"></span>';tab.querySelector('.tab-name').textContent=activeFile;tabs.insertBefore(tab,document.querySelector('#new-file'));}
+    function select(name){save();activeFile=name;initialContent=files[name];editor.setValue(initialContent);editor.clearHistory();render();menu.hidden=true;output.textContent='Your output will appear here.';}
+    function runCode(){if(!pyodide)return;save();run.disabled=true;output.textContent='';const started=performance.now();pyodide.setStdout({batched:t=>output.textContent+=t+'\n'});pyodide.runPythonAsync(editor.getValue()).then(()=>{if(!output.textContent)output.textContent='Code ran successfully with no output.';document.querySelector('#run-time').textContent=Math.round(performance.now()-started)+' ms'}).catch(e=>{output.textContent=e.message;output.classList.add('error')}).finally(()=>run.disabled=false)}
+    fileList.addEventListener('click',e=>{const item=e.target.closest('.file-item');if(!item)return;select(item.dataset.file);menu.hidden=false;menu.dataset.file=item.dataset.file;menu.style.top=item.offsetTop+item.offsetHeight+'px'});
+    menu.addEventListener('click',e=>{const action=e.target.dataset.action,name=menu.dataset.file;if(!action)return;menu.hidden=true;if(action==='duplicate'){let copy=name.replace(/(\.[^.]+)?$/, ' copy$1');let n=2;while(files[copy]!==undefined)copy=name.replace(/(\.[^.]+)?$/, ' copy '+n+++'$1');files[copy]=files[name];select(copy)}if(action==='rename'){const next=prompt('Rename file',name);if(next&&next!==name&&files[next]===undefined){files[next]=files[name];delete files[name];if(activeFile===name)activeFile=next;save();render()}}if(action==='delete'&&confirm('Delete '+name+'?')){delete files[name];activeFile=Object.keys(files)[0]||'scratch.py';if(!files[activeFile])files[activeFile]='';select(activeFile)}if(action==='download'){const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([files[name]],{type:'text/plain'}));link.download=name;link.click()}});
+    document.addEventListener('click',e=>{if(!e.target.closest('.file-menu,.file-item'))menu.hidden=true});
+    document.querySelector('#new-file').onclick=()=>{let n=1,name='untitled.py';while(files[name]!==undefined)name='untitled'+(++n)+'.py';files[name]='# Start something new\n\n';select(name)};
+    document.querySelector('#reset-code').onclick=()=>{editor.setValue(initialContent);save()};editor.on('change',save);editor.on('cursorActivity',()=>{const c=editor.getCursor();document.querySelector('#cursor-status').textContent='Ln '+(c.line+1)+', Col '+(c.ch+1)});render();editor.setValue(files[activeFile]||'');
+    const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js';script.onload=async()=>{pyodide=await loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/'});run.disabled=false;output.textContent='Your output will appear here.'};script.onerror=()=>output.textContent='Python could not be loaded. Check your connection.';document.head.appendChild(script);
+  </script>
+</body>
+</html>

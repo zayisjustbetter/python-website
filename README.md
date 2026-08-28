@@ -13,9 +13,9 @@ python app.py
 
 Open http://127.0.0.1:5000 in your browser.
 
-## Deploy as a website
+## Website
 
-This project includes a production web start command. On Render, connect this repository and use the included `render.yaml`; set a strong `SECRET_KEY` environment variable. For another host, install `requirements.txt` and run `gunicorn app:app`.
+The public website is hosted on GitHub Pages at https://code.pip.abrdns.com. The landing page and browser workbench are static Pages-compatible files. The workbench runs Python in the browser and stores files locally in that browser; Flask is used for the Windows app and optional server deployment.
 
 ## Windows download
 
