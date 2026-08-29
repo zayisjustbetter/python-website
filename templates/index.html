@@ -227,6 +227,31 @@ print(f"It is {datetime.now():%A}.")</textarea>
       saveWorkspace();
     }
 
+    async function loadCloudWorkspace() {
+      if (!currentUser || !supabaseClient) return;
+      const { data, error } = await supabaseClient.from('workspaces').select('files').eq('user_id', currentUser.id).maybeSingle();
+      if (error) {
+        console.error('Workspace load failed:', error);
+        return;
+      }
+      if (!data?.files) {
+        if (activeFile) fileContents[activeFile] = codeEditor.getValue();
+        await supabaseClient.from('workspaces').upsert({ user_id: currentUser.id, files: fileContents, updated_at: new Date().toISOString() });
+        return;
+      }
+      isApplyingWorkspace = true;
+      clearTimeout(saveTimer);
+      Object.keys(fileContents).forEach((fileName) => delete fileContents[fileName]);
+      Object.assign(fileContents, data.files);
+      activeFile = Object.keys(fileContents).find((name) => name.endsWith('.py')) || 'scratch.py';
+      openFiles = [activeFile];
+      codeEditor.setValue(fileContents[activeFile] || '');
+      codeEditor.clearHistory();
+      renderFileList();
+      updateEditorState();
+      isApplyingWorkspace = false;
+    }
+
     function saveWorkspace() {
       if (!currentUser || isApplyingWorkspace) return;
       clearTimeout(saveTimer);
@@ -488,8 +513,19 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelector('#auth-gate-login').addEventListener('click', showAuthModal);
     document.querySelector('#discord-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
     document.querySelector('#github-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
+    if (supabaseClient) {
+      supabaseClient.auth.getUser().then(async ({ data }) => {
+        currentUser = data.user;
+        if (currentUser && (!needsEmailConfirmation(currentUser) || currentUser.email_confirmed_at)) {
+          unlockSite();
+          updateAccount();
+          if (typeof loadCloudWorkspace === 'function') await loadCloudWorkspace();
+        } else if (currentUser) {
+          await signOut();
+        }
+      });
+    }
   </script>
-  if (supabaseClient) supabaseClient.auth.getUser().then(({ data }) => { currentUser = data.user; if (currentUser && (!needsEmailConfirmation(currentUser) || currentUser.email_confirmed_at)) { unlockSite(); updateAccount(); if (typeof loadCloudWorkspace === 'function') loadCloudWorkspace(); } else if (currentUser) signOut(); });
   {% if workbench_page %}<script>
     codeEditor.on('change', saveWorkspace);
 
