@@ -4,6 +4,8 @@ import re
 import sqlite3
 import sys
 import threading
+import urllib.error
+import urllib.request
 import webbrowser
 from io import BytesIO
 from functools import wraps
@@ -14,6 +16,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
+app.config["DISCORD_WEBHOOK_URL"] = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/" + "1543064103042555906/" + "9xO8TnZyi19K5kbEChZMqlFoB57LfVbrvGEK8C_SyjSn4icI4UG2JiKAW6XHzSlAlti7"
 if getattr(sys, "frozen", False):
     data_directory = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "PythonInPractice")
     os.makedirs(data_directory, exist_ok=True)
@@ -69,6 +72,37 @@ def valid_email(email):
     return len(email) <= 254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
 
 
+def send_lesson_request(form_data):
+    webhook_url = app.config["DISCORD_WEBHOOK_URL"]
+    if not webhook_url:
+        raise RuntimeError("Discord lesson requests are not configured yet.")
+    message = {
+        "username": "Python in Practice lesson requests",
+        "embeds": [{
+            "title": "Professional lesson request",
+            "color": 15650655,
+            "fields": [
+                {"name": "Discord username", "value": form_data["discord_username"], "inline": True},
+                {"name": "Python experience", "value": form_data["experience"], "inline": True},
+                {"name": "Support requested from", "value": form_data["helper_type"], "inline": True},
+                {"name": "Lesson goals", "value": form_data["goals"]},
+                {"name": "Availability", "value": form_data["availability"]},
+                {"name": "Extra context", "value": form_data["context"] or "None provided"},
+            ],
+        }],
+    }
+    payload = json.dumps(message).encode("utf-8")
+    webhook_request = urllib.request.Request(
+        webhook_url,
+        data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": "Python-in-Practice/1.0"},
+        method="POST",
+    )
+    with urllib.request.urlopen(webhook_request, timeout=10) as response:
+        if response.status < 200 or response.status >= 300:
+            raise RuntimeError("Discord rejected the request.")
+
+
 init_db()
 
 
@@ -102,6 +136,35 @@ def lessons():
 @app.get("/discord")
 def discord():
     return render_template("discord.html")
+
+
+@app.route("/request-lesson", methods=["GET", "POST"])
+def request_lesson():
+    form_data = {
+        "discord_username": request.form.get("discord_username", "").strip(),
+        "experience": request.form.get("experience", "").strip(),
+        "helper_type": request.form.get("helper_type", "").strip(),
+        "goals": request.form.get("goals", "").strip(),
+        "availability": request.form.get("availability", "").strip(),
+        "context": request.form.get("context", "").strip(),
+    }
+    error = None
+    submitted = False
+    if request.method == "POST":
+        required_fields = ("discord_username", "experience", "helper_type", "goals", "availability")
+        if any(not form_data[field] for field in required_fields):
+            error = "Please complete each required field so a helper can prepare for you."
+        elif any(len(value) > 1_000 for value in form_data.values()):
+            error = "Please keep each answer under 1,000 characters."
+        else:
+            try:
+                send_lesson_request(form_data)
+                submitted = True
+                form_data = {field: "" for field in form_data}
+            except (RuntimeError, urllib.error.URLError, TimeoutError):
+                app.logger.exception("Unable to send Discord lesson request")
+                error = "We could not send your request right now. Please try again in a moment."
+    return render_template("request_lesson.html", form_data=form_data, error=error, submitted=submitted)
 
 
 @app.post("/api/auth/register")

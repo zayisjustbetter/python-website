@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Request a professional Python lesson from the Python in Practice community.">
+  <title>Request a Lesson | Python in Practice</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand-lockup" href="{{ url_for('home') }}#top" aria-label="Python in Practice home"><img src="https://www.python.org/static/community_logos/python-logo.png" alt="Python logo"><span>Python in Practice</span></a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="{{ url_for('workbench') }}">Workbench</a>
+        <a href="{{ url_for('lessons') }}">Lessons</a>
+        <a href="{{ url_for('discord') }}">Discord</a>
+        <a href="{{ url_for('home') }}#principles">Principles</a>
+        <a href="{{ url_for('home') }}#field-notes">Field notes</a>
+      </nav>
+      <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">Menu <span>+</span></button>
+    </header>
+
+    <main class="request-page">
+      <section class="request-layout">
+        <div class="request-intro">
+          <p class="eyebrow"><span class="eyebrow-dot"></span> Personal guidance</p>
+          <h1>Make your next<br><i>step count.</i></h1>
+          <p>Tell a trainer, volunteer helper, or owner what you are working toward. We will use your answers to find the right person and shape a useful lesson.</p>
+          <a class="text-link" href="{{ url_for('discord') }}">Back to Discord <span aria-hidden="true">↗</span></a>
+        </div>
+
+        <form class="request-form" method="post">
+          {% if submitted %}<div class="request-notice request-success" role="status">Your request is on its way. A helper will reach out in Discord.</div>{% endif %}
+          {% if error %}<div class="request-notice request-error" role="alert">{{ error }}</div>{% endif %}
+          <div class="request-field"><label for="discord_username">Discord username <span>*</span></label><input id="discord_username" name="discord_username" type="text" value="{{ form_data.discord_username }}" placeholder="yourname" maxlength="100" required><small>Include your current username or handle so we can find you.</small></div>
+          <div class="request-field"><label for="experience">How advanced are you in Python development? <span>*</span></label><select id="experience" name="experience" required><option value="">Choose your current level</option>{% for option in ['Just starting', 'Beginner', 'Intermediate', 'Advanced', 'Professional developer'] %}<option {% if form_data.experience == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+          <div class="request-field"><label for="helper_type">Who would you like help from? <span>*</span></label><select id="helper_type" name="helper_type" required><option value="">Choose a helper</option>{% for option in ['A professional trainer', 'A volunteer helper', 'The owner'] %}<option {% if form_data.helper_type == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></div>
+          <div class="request-field"><label for="goals">What would you like to learn or build? <span>*</span></label><textarea id="goals" name="goals" rows="4" maxlength="1000" placeholder="For example: I want to build a small API and understand how to test it." required>{{ form_data.goals }}</textarea></div>
+          <div class="request-field"><label for="availability">When are you usually available? <span>*</span></label><input id="availability" name="availability" type="text" value="{{ form_data.availability }}" maxlength="1000" placeholder="Weekday evenings, UTC-5" required></div>
+          <div class="request-field"><label for="context">Anything else that would help us prepare?</label><textarea id="context" name="context" rows="3" maxlength="1000" placeholder="Share a project link, blockers, or accessibility needs.">{{ form_data.context }}</textarea></div>
+          <button class="request-submit" type="submit">Send lesson request <span aria-hidden="true">↗</span></button>
+        </form>
+      </section>
+    </main>
+    <footer class="site-footer"><span>© 2026 Python in Practice</span><a href="{{ url_for('home') }}#top">Back to home ↑</a></footer>
+  </div>
+  <script>
+    const menu = document.querySelector('.menu-toggle');
+    const nav = document.querySelector('.site-nav');
+    menu.addEventListener('click', () => {
+      const open = menu.getAttribute('aria-expanded') === 'true';
+      menu.setAttribute('aria-expanded', String(!open));
+      nav.classList.toggle('is-open', !open);
+    });
+  </script>
+</body>
+</html>

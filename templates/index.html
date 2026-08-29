@@ -42,7 +42,7 @@
         <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
         <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
         <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
-        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><button class="github-button" id="github-login" type="button">Continue with GitHub <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
       </div>
     </div>
     <div class="profile-modal" id="profile-modal" aria-hidden="true"><div class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title"><button class="auth-close" id="profile-close" type="button" aria-label="Close profile">×</button><p class="eyebrow">Your account</p><h2 id="profile-title">Your <i>profile.</i></h2><p class="profile-email" id="profile-email"></p><p class="profile-status" id="profile-status"></p><button class="profile-logout" id="profile-logout" type="button">Log out</button></div></div>
@@ -90,7 +90,7 @@ def greet(name):
 
 print(greet("curious human"))
 print(f"It is {datetime.now():%A}.")</textarea>
-              <div class="playground-actions"><span class="branch-label">⎇ main</span><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Run Python</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div>
+              <div class="playground-actions"><span class="branch-label">⎇ main</span><button class="run-button" id="run-code" type="button" disabled><span>▶</span> Launch Code</button><button class="reset-button" id="reset-code" type="button">Reset</button><span class="shortcut">Ctrl / Cmd + Enter</span></div>
               <div class="output-panel"><div class="output-label"><span class="terminal-symbol">›_</span> Terminal <span id="run-time"></span></div><pre id="code-output">Your output will appear here.</pre></div>
             </div>
           </div>
@@ -361,7 +361,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
         output.classList.add('error');
       } finally {
         runButton.disabled = false;
-        runButton.innerHTML = '<span>▶</span> Run Python';
+        runButton.innerHTML = '<span>▶</span> Launch Code';
       }
     }
 
@@ -408,19 +408,28 @@ print(f"It is {datetime.now():%A}.")</textarea>
     }
 
     function needsEmailConfirmation(user) {
-      return !isDiscordUser(user) && (user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email'));
+      return !isSocialUser(user) && (user?.app_metadata?.provider === 'email' || user?.identities?.some((identity) => identity.provider === 'email'));
     }
 
-    function isDiscordUser(user) {
-      return user?.app_metadata?.provider === 'discord' || user?.identities?.some((identity) => identity.provider === 'discord');
+    function isSocialUser(user) {
+      const providers = new Set(['discord', 'github']);
+      return user?.app_metadata?.provider && providers.has(user.app_metadata.provider) || user?.identities?.some((identity) => identity.provider && providers.has(identity.provider));
+    }
+
+    function providerDisplayName(user) {
+      const provider = user?.app_metadata?.provider || user?.identities?.find((identity) => ['discord', 'github'].includes(identity.provider))?.provider;
+      if (provider === 'github') return 'GitHub account';
+      if (provider === 'discord') return 'Discord account';
+      return 'Email confirmed';
     }
 
     function displayEmail(user) {
-      if (!isDiscordUser(user)) return user?.email || 'Account';
-      const discordIdentity = user.identities?.find((identity) => identity.provider === 'discord');
-      const metadata = { ...discordIdentity?.identity_data, ...user.user_metadata };
-      const username = metadata.user_name || metadata.preferred_username || metadata.username || metadata.global_name || metadata.full_name || 'user';
-      return `${String(username).trim().replace(/[^a-zA-Z0-9._-]/g, '_')}@discord.com`;
+      if (!isSocialUser(user)) return user?.email || 'Account';
+      const provider = user?.app_metadata?.provider || user?.identities?.find((identity) => ['discord', 'github'].includes(identity.provider))?.provider;
+      const identity = user?.identities?.find((identity) => identity.provider === provider);
+      const metadata = { ...identity?.identity_data, ...user.user_metadata };
+      const username = metadata.user_name || metadata.preferred_username || metadata.username || metadata.login || metadata.global_name || metadata.full_name || metadata.name || 'user';
+      return `${String(username).trim().replace(/[^a-zA-Z0-9._-]/g, '_')}@${provider || 'social'}.com`;
     }
 
     async function submitAuth(event) {
@@ -446,7 +455,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
 
     function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
     function updateAccount() { const button = document.querySelector('#account-button'); if (currentUser) { button.textContent = displayEmail(currentUser); button.classList.add('signed-in'); } }
-    function showProfile() { if (!currentUser) return showAuthModal(); document.querySelector('#profile-email').textContent = displayEmail(currentUser); document.querySelector('#profile-status').textContent = isDiscordUser(currentUser) ? 'Discord account' : 'Email confirmed'; document.querySelector('#profile-modal').classList.add('open'); }
+    function showProfile() { if (!currentUser) return showAuthModal(); document.querySelector('#profile-email').textContent = displayEmail(currentUser); document.querySelector('#profile-status').textContent = providerDisplayName(currentUser); document.querySelector('#profile-modal').classList.add('open'); }
     async function signOut() { await supabaseClient?.auth.signOut(); currentUser = null; document.body.classList.add('auth-required'); document.querySelector('#auth-gate').hidden = false; updateAccount(); document.querySelector('#profile-modal').classList.remove('open'); }
     document.querySelector('#account-button').addEventListener('click', () => currentUser ? showProfile() : showAuthModal());
     document.querySelector('#auth-close').addEventListener('click', hideAuthModal);
@@ -458,6 +467,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelector('#profile-logout').addEventListener('click', signOut);
     document.querySelector('#auth-gate-login').addEventListener('click', showAuthModal);
     document.querySelector('#discord-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
+    document.querySelector('#github-login').addEventListener('click', async () => { if (!supabaseClient) return; const result = await supabaseClient.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: window.location.href } }); if (result.error) authMessage.textContent = result.error.message; });
   </script>
   if (supabaseClient) supabaseClient.auth.getUser().then(({ data }) => { currentUser = data.user; if (currentUser && (!needsEmailConfirmation(currentUser) || currentUser.email_confirmed_at)) { unlockSite(); updateAccount(); if (typeof loadCloudWorkspace === 'function') loadCloudWorkspace(); } else if (currentUser) signOut(); });
   {% if workbench_page %}<script>
