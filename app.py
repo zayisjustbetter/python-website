@@ -16,7 +16,7 @@ from flask import Flask, jsonify, render_template, request, send_file, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-SITE_BASE_URL = "https://code.pip.abrdns.com"
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://127.0.0.1:5000")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
 app.config["DISCORD_WEBHOOK_URL"] = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/" + "1543064103042555906/" + "9xO8TnZyi19K5kbEChZMqlFoB57LfVbrvGEK8C_SyjSn4icI4UG2JiKAW6XHzSlAlti7"
 if getattr(sys, "frozen", False):
@@ -264,37 +264,28 @@ def run_code():
     if not isinstance(code, str):
         return jsonify(error="Code must be a string."), 400
 
-    remote_url = f"{SITE_BASE_URL}/api/run-code"
-    try:
-        remote_request = urllib.request.Request(
-            remote_url,
-            data=json.dumps({"code": code}).encode("utf-8"),
-            headers={"Content-Type": "application/json", "User-Agent": "Python-in-Practice/1.0"},
-            method="POST",
-        )
-        with urllib.request.urlopen(remote_request, timeout=15) as response:
-            response_data = json.loads(response.read().decode("utf-8"))
-        return jsonify(response_data)
-    except Exception:
-        try:
-            completed = subprocess.run(
-                [sys.executable, "-c", code],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                cwd=os.path.dirname(__file__),
-            )
-        except subprocess.TimeoutExpired:
-            return jsonify(error="Code timed out after 10 seconds."), 408
+    if not code.strip():
+        return jsonify(ok=True, stdout="", stderr="", output="", exitCode=0)
 
-        output = (completed.stdout or "") + (completed.stderr or "")
-        return jsonify(
-            ok=completed.returncode == 0,
-            stdout=completed.stdout or "",
-            stderr=completed.stderr or "",
-            output=output,
-            exitCode=completed.returncode,
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=os.path.dirname(__file__),
         )
+    except subprocess.TimeoutExpired:
+        return jsonify(error="Code timed out after 10 seconds."), 408
+
+    output = (completed.stdout or "") + (completed.stderr or "")
+    return jsonify(
+        ok=completed.returncode == 0,
+        stdout=completed.stdout or "",
+        stderr=completed.stderr or "",
+        output=output,
+        exitCode=completed.returncode,
+    )
 
 
 if __name__ == "__main__":
