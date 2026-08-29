@@ -100,12 +100,38 @@ const lessonModal = document.querySelector('#lesson-modal');
 if (lessonModal) {
   const lessonTitle = document.querySelector('#lesson-modal-title'); const lessonLevel = document.querySelector('#lesson-modal-level'); const lessonDetail = document.querySelector('#lesson-modal-detail'); const lessonExample = document.querySelector('#lesson-example'); const lessonAnswer = document.querySelector('#lesson-answer'); const lessonCheck = document.querySelector('#lesson-check'); const lessonFeedback = document.querySelector('#lesson-feedback'); const lessonStart = document.querySelector('#lesson-start');
   let activeLesson;
-  function normalizeCode(code) { return code.trim().replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, ''); }
-  function openLesson(lesson) { activeLesson = lesson; lessonTitle.textContent = `${lesson.concept}: ${lesson.topic}`; lessonLevel.textContent = `${lesson.level} / ${lesson.topic}`; lessonDetail.textContent = `${lesson.detail} Practice: ${lesson.task}`; lessonExample.textContent = lesson.example; lessonAnswer.value = ''; lessonFeedback.textContent = ''; lessonStart.setAttribute('aria-disabled', 'true'); lessonStart.setAttribute('tabindex', '-1'); lessonStart.classList.remove('is-unlocked'); lessonModal.setAttribute('aria-hidden', 'false'); lessonModal.classList.add('open'); lessonAnswer.focus(); }
+  function normalizeCode(code) {
+    const cleaned = (code || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/#.*$/gm, '')
+      .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '"STR"')
+      .replace(/\b\d+(?:\.\d+)?\b/g, '0');
+    const keywords = new Set(['and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'False', 'finally', 'for', 'from', 'if', 'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or', 'pass', 'print', 'raise', 'return', 'True', 'try', 'while', 'with', 'yield', 'len', 'sum', 'sorted', 'range', 'open', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple']);
+    return cleaned
+      .replace(/[A-Za-z_][A-Za-z0-9_]*/g, (token) => (keywords.has(token) ? token.toLowerCase() : 'VAR'))
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function structureMatches(answer, example) {
+    const userCode = normalizeCode(answer);
+    const targetCode = normalizeCode(example);
+    if (!userCode || !targetCode) return false;
+    if (userCode === targetCode) return true;
+    const userTokens = userCode.match(/[A-Za-z_]+|[0-9]+|[(){}\[\].,:+*/=%<>!-]+|"STR"/g) || [];
+    const targetTokens = targetCode.match(/[A-Za-z_]+|[0-9]+|[(){}\[\].,:+*/=%<>!-]+|"STR"/g) || [];
+    const requiredMatches = Math.max(3, Math.ceil(targetTokens.length * 0.65));
+    const overlap = targetTokens.filter((token) => userTokens.includes(token)).length;
+    if (overlap >= requiredMatches) return true;
+    const targetKeywords = targetTokens.filter((token) => /[A-Za-z_]/.test(token) && !token.includes('VAR') && !token.includes('STR'));
+    const userKeywords = userTokens.filter((token) => /[A-Za-z_]/.test(token) && !token.includes('VAR') && !token.includes('STR'));
+    const keywordOverlap = targetKeywords.filter((token) => userKeywords.includes(token)).length;
+    return keywordOverlap >= Math.max(2, Math.ceil(targetKeywords.length * 0.6));
+  }
+  function openLesson(lesson) { activeLesson = lesson; lessonTitle.textContent = `${lesson.concept}: ${lesson.topic}`; lessonLevel.textContent = `${lesson.level} / ${lesson.topic}`; lessonDetail.textContent = `${lesson.detail} Practice: ${lesson.task} Use the same pattern, but change the names, values, and arguments.`; lessonExample.textContent = lesson.example; lessonAnswer.value = ''; lessonFeedback.textContent = ''; lessonStart.setAttribute('aria-disabled', 'true'); lessonStart.setAttribute('tabindex', '-1'); lessonStart.classList.remove('is-unlocked'); lessonModal.setAttribute('aria-hidden', 'false'); lessonModal.classList.add('open'); lessonAnswer.focus(); }
   function closeLesson() { lessonModal.setAttribute('aria-hidden', 'true'); lessonModal.classList.remove('open'); }
   grid.addEventListener('click', (event) => { const card = event.target.closest('.lesson-card'); if (card) openLesson(lessons.find((lesson) => lesson.order === Number(card.dataset.lesson))); });
   grid.addEventListener('keydown', (event) => { if (event.key !== 'Enter' && event.key !== ' ') return; const card = event.target.closest('.lesson-card'); if (!card) return; event.preventDefault(); openLesson(lessons.find((lesson) => lesson.order === Number(card.dataset.lesson))); });
-  lessonCheck.addEventListener('click', () => { if (normalizeCode(lessonAnswer.value) === normalizeCode(activeLesson.example)) { lessonFeedback.textContent = 'Correct. You can continue.'; lessonFeedback.classList.add('is-correct'); lessonStart.removeAttribute('aria-disabled'); lessonStart.removeAttribute('tabindex'); lessonStart.classList.add('is-unlocked'); } else { lessonFeedback.textContent = 'Not quite. Match the example exactly, including indentation, then check again.'; lessonFeedback.classList.remove('is-correct'); lessonStart.setAttribute('aria-disabled', 'true'); lessonStart.setAttribute('tabindex', '-1'); } });
+  lessonCheck.addEventListener('click', () => { if (structureMatches(lessonAnswer.value, activeLesson.example)) { lessonFeedback.textContent = 'Correct. You used the same pattern with different values or arguments.'; lessonFeedback.classList.add('is-correct'); lessonStart.removeAttribute('aria-disabled'); lessonStart.removeAttribute('tabindex'); lessonStart.classList.add('is-unlocked'); } else { lessonFeedback.textContent = 'Not quite. Keep the same pattern, but change the names, values, or arguments to make it your own.'; lessonFeedback.classList.remove('is-correct'); lessonStart.setAttribute('aria-disabled', 'true'); lessonStart.setAttribute('tabindex', '-1'); } });
   lessonStart.addEventListener('click', (event) => { if (lessonStart.getAttribute('aria-disabled') === 'true') event.preventDefault(); });
   document.querySelector('#lesson-modal-close').addEventListener('click', closeLesson); lessonModal.addEventListener('click', (event) => { if (event.target === lessonModal) closeLesson(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && lessonModal.classList.contains('open')) closeLesson(); });
 }

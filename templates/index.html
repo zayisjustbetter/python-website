@@ -344,23 +344,39 @@ print(f"It is {datetime.now():%A}.")</textarea>
     };
     document.head.appendChild(script);
 
+    function appendTerminal(chunk) {
+      const text = typeof chunk === 'string' ? chunk : String(chunk ?? '');
+      output.textContent += text;
+      if (!text.endsWith('\n')) output.textContent += '\n';
+    }
+
     async function runCode() {
       if (!pyodide || !activeFile || !activeFile.endsWith('.py')) return;
+      if (!codeEditor) return;
+      fileContents[activeFile] = codeEditor.getValue();
+      saveWorkspace();
       runButton.disabled = true;
       runButton.innerHTML = '<span class="spinner"></span> Running';
       output.classList.remove('error');
+      output.textContent = '';
       const started = performance.now();
       try {
-        pyodide.setStdout({ batched: (text) => { output.textContent += text + '\n'; } });
-        output.textContent = '';
+        pyodide.setStdout({ batched: appendTerminal });
+        pyodide.setStderr({ batched: (chunk) => {
+          output.classList.add('error');
+          appendTerminal(chunk);
+        } });
         await pyodide.runPythonAsync(codeEditor.getValue());
-        if (!output.textContent) output.textContent = 'Code ran successfully with no output.';
-        runTime.textContent = `${Math.round(performance.now() - started)} ms`;
+        const elapsed = Math.round(performance.now() - started);
+        if (!output.textContent.trim()) {
+          output.textContent = 'Code ran successfully with no output.';
+        }
+        runTime.textContent = `${elapsed} ms`;
       } catch (error) {
-        output.textContent = error.message;
+        output.textContent = error?.message || String(error);
         output.classList.add('error');
       } finally {
-        runButton.disabled = false;
+        runButton.disabled = !pyodide;
         runButton.innerHTML = '<span>▶</span> Launch Code';
       }
     }
