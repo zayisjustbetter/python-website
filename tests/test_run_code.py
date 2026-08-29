@@ -40,7 +40,9 @@ class RunCodeEndpointTests(unittest.TestCase):
         page_html = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
+        self.assertIn("Reset password", page_html)
         self.assertIn("Forgot your password", page_html)
+        self.assertIn("auth-reset-button", page_html)
         self.assertIn("auth-reset-link", page_html)
 
     @patch("urllib.request.urlopen")

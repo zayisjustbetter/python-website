@@ -42,7 +42,7 @@
         <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
         <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
         <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
-        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><div class="auth-links"><button class="auth-reset-link" id="auth-reset-link" type="button">Forgot your password?</button></div><div class="auth-captcha" id="auth-captcha" aria-live="polite"><div class="h-captcha" data-sitekey="{{ hcaptcha_sitekey }}" data-theme="light"></div></div><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><button class="github-button" id="github-login" type="button">Continue with GitHub <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><div class="auth-links"><button class="auth-reset-button" id="auth-reset-button" type="button">Reset password</button><button class="auth-reset-link" id="auth-reset-link" type="button">Forgot your password?</button></div><div class="auth-captcha" id="auth-captcha" aria-live="polite"><div class="h-captcha" data-sitekey="{{ hcaptcha_sitekey }}" data-theme="light"></div></div><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><button class="github-button" id="github-login" type="button">Continue with GitHub <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
       </div>
     </div>
     <div class="profile-modal" id="profile-modal" aria-hidden="true"><div class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title"><button class="auth-close" id="profile-close" type="button" aria-label="Close profile">×</button><p class="eyebrow">Your account</p><h2 id="profile-title">Your <i>profile.</i></h2><p class="profile-email" id="profile-email"></p><p class="profile-status" id="profile-status"></p><button class="profile-logout" id="profile-logout" type="button">Log out</button></div></div>
@@ -432,6 +432,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     const authTitle = document.querySelector('#auth-title');
     const authSubmit = document.querySelector('#auth-submit');
     const authResetLink = document.querySelector('#auth-reset-link');
+    const authResetButton = document.querySelector('#auth-reset-button');
     const hCaptchaWidget = document.querySelector('.h-captcha');
     let authMode = 'login';
 
@@ -575,7 +576,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     document.querySelector('#auth-close').addEventListener('click', hideAuthModal);
     authModal.addEventListener('click', (event) => { if (event.target === authModal) hideAuthModal(); });
     document.querySelectorAll('.auth-switch').forEach((button) => button.addEventListener('click', () => setAuthMode(button.dataset.mode)));
-    authResetLink.addEventListener('click', requestPasswordReset);
+    [authResetLink, authResetButton].forEach((button) => button && button.addEventListener('click', requestPasswordReset));
     authForm.addEventListener('submit', submitAuth);
     document.querySelector('#logout-button')?.addEventListener('click', signOut);
     document.querySelector('#profile-close').addEventListener('click', () => document.querySelector('#profile-modal').classList.remove('open'));
