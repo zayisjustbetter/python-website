@@ -16,6 +16,7 @@ from flask import Flask, jsonify, render_template, request, send_file, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
+SITE_BASE_URL = "https://code.pip.abrdns.com"
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
 app.config["DISCORD_WEBHOOK_URL"] = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/" + "1543064103042555906/" + "9xO8TnZyi19K5kbEChZMqlFoB57LfVbrvGEK8C_SyjSn4icI4UG2JiKAW6XHzSlAlti7"
 if getattr(sys, "frozen", False):
@@ -263,7 +264,7 @@ def run_code():
     if not isinstance(code, str):
         return jsonify(error="Code must be a string."), 400
 
-    remote_url = "https://code.pip.abrdns.com/api/run-code"
+    remote_url = f"{SITE_BASE_URL}/api/run-code"
     try:
         remote_request = urllib.request.Request(
             remote_url,
@@ -297,5 +298,5 @@ def run_code():
 
 
 if __name__ == "__main__":
-    threading.Timer(1.25, lambda: webbrowser.open("http://127.0.0.1:5000")).start()
+    threading.Timer(1.25, lambda: webbrowser.open(SITE_BASE_URL)).start()
     app.run(debug=True)
