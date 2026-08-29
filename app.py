@@ -18,6 +18,22 @@ from werkzeug.security import check_password_hash, generate_password_hash
 app = Flask(__name__)
 
 
+def load_environment_from_dotenv():
+    dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+    if not os.path.exists(dotenv_path):
+        return
+    with open(dotenv_path, "r", encoding="utf-8") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_environment_from_dotenv()
+
+
 def get_site_base_url():
     configured = os.environ.get("SITE_BASE_URL")
     if configured:
@@ -39,6 +55,8 @@ def get_site_base_url():
 
 SITE_BASE_URL = get_site_base_url()
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
+app.config["HCAPTCHA_SITEKEY"] = os.environ.get("HCAPTCHA_SITEKEY", "01f4e24a-3376-48ca-85a2-7e069f0aa5de")
+app.config["HCAPTCHA_SECRET_KEY"] = os.environ.get("HCAPTCHA_SECRET_KEY")
 app.config["DISCORD_WEBHOOK_URL"] = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/" + "1543064103042555906/" + "9xO8TnZyi19K5kbEChZMqlFoB57LfVbrvGEK8C_SyjSn4icI4UG2JiKAW6XHzSlAlti7"
 if getattr(sys, "frozen", False):
     data_directory = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "PythonInPractice")
@@ -95,6 +113,26 @@ def valid_email(email):
     return len(email) <= 254 and bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
 
 
+def verify_hcaptcha(token):
+    secret = app.config.get("HCAPTCHA_SECRET_KEY")
+    if not secret:
+        return False, "The hCaptcha secret key is not configured on the server."
+
+    payload = json.dumps({"response": token, "secret": secret}).encode("utf-8")
+    request = urllib.request.Request(
+        "https://api.hcaptcha.com/siteverify",
+        data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": "Python-in-Practice/1.0"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return False, "The captcha verification request failed."
+    return bool(body.get("success")), body.get("error-codes", [])
+
+
 def send_lesson_request(form_data):
     webhook_url = app.config["DISCORD_WEBHOOK_URL"]
     if not webhook_url:
@@ -132,7 +170,13 @@ init_db()
 @app.route("/", methods=["GET", "POST"])
 def home():
     submitted = request.method == "POST"
-    return render_template("index.html", submitted=submitted, username=session.get("username"), workbench_page=False)
+    return render_template(
+        "index.html",
+        submitted=submitted,
+        username=session.get("username"),
+        workbench_page=False,
+        hcaptcha_sitekey=app.config["HCAPTCHA_SITEKEY"],
+    )
 
 
 @app.get("/download/windows")
@@ -148,7 +192,13 @@ def download_windows():
 
 @app.get("/workbench")
 def workbench():
-    return render_template("index.html", submitted=False, username=session.get("username"), workbench_page=True)
+    return render_template(
+        "index.html",
+        submitted=False,
+        username=session.get("username"),
+        workbench_page=True,
+        hcaptcha_sitekey=app.config["HCAPTCHA_SITEKEY"],
+    )
 
 
 @app.get("/lessons")
@@ -188,6 +238,18 @@ def request_lesson():
                 app.logger.exception("Unable to send Discord lesson request")
                 error = "We could not send your request right now. Please try again in a moment."
     return render_template("request_lesson.html", form_data=form_data, error=error, submitted=submitted)
+
+
+@app.post("/api/verify-captcha")
+def verify_captcha():
+    payload = request.get_json(silent=True) or {}
+    token = str(payload.get("captcha_token", "")).strip()
+    if not token:
+        return jsonify(ok=False, error="Captcha token is missing."), 400
+    is_valid, details = verify_hcaptcha(token)
+    if not is_valid:
+        return jsonify(ok=False, error="Captcha verification failed.", details=details), 400
+    return jsonify(ok=True)
 
 
 @app.post("/api/auth/register")

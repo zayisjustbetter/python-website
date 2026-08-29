@@ -42,7 +42,7 @@
         <button class="auth-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
         <p class="eyebrow">Your workspace</p><h2 id="auth-title">Keep your work<br><i>close.</i></h2>
         <div class="auth-switcher"><button class="auth-switch active" data-mode="login" type="button">Log in</button><button class="auth-switch" data-mode="register" type="button">Create account</button></div>
-        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><div class="auth-captcha" id="auth-captcha" aria-live="polite"><div class="h-captcha" data-sitekey="01f4e24a-3376-48ca-85a2-7e069f0aa5de" data-theme="light"></div></div><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><button class="github-button" id="github-login" type="button">Continue with GitHub <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
+        <form id="auth-form"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="current-password" required><div class="auth-captcha" id="auth-captcha" aria-live="polite"><div class="h-captcha" data-sitekey="{{ hcaptcha_sitekey }}" data-theme="light"></div></div><button class="auth-submit" type="submit" id="auth-submit">Log in <span>↗</span></button><button class="discord-button" id="discord-login" type="button">Continue with Discord <span>↗</span></button><button class="github-button" id="github-login" type="button">Continue with GitHub <span>↗</span></button><p class="auth-message" id="auth-message" role="status"></p></form>
       </div>
     </div>
     <div class="profile-modal" id="profile-modal" aria-hidden="true"><div class="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title"><button class="auth-close" id="profile-close" type="button" aria-label="Close profile">×</button><p class="eyebrow">Your account</p><h2 id="profile-title">Your <i>profile.</i></h2><p class="profile-email" id="profile-email"></p><p class="profile-status" id="profile-status"></p><button class="profile-logout" id="profile-logout" type="button">Log out</button></div></div>
@@ -485,23 +485,45 @@ print(f"It is {datetime.now():%A}.")</textarea>
       return `${String(username).trim().replace(/[^a-zA-Z0-9._-]/g, '_')}@${provider || 'social'}.com`;
     }
 
+    async function verifyCaptcha() {
+      const captchaToken = getCaptchaToken();
+      if (!captchaToken) {
+        authMessage.textContent = 'Please complete the verification challenge.';
+        return false;
+      }
+
+      const response = await fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captcha_token: captchaToken })
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.ok) {
+        authMessage.textContent = data.error || 'Captcha verification failed.';
+        if (window.hcaptcha) window.hcaptcha.reset(hCaptchaWidget);
+        return false;
+      }
+
+      return true;
+    }
+
     async function submitAuth(event) {
       event.preventDefault();
       authSubmit.disabled = true;
       authMessage.textContent = 'Connecting...';
       if (!supabaseClient) { authMessage.textContent = 'Supabase is not configured.'; authSubmit.disabled = false; return; }
       const values = Object.fromEntries(new FormData(authForm));
-      const captchaToken = getCaptchaToken();
-      if (!captchaToken) {
-        authMessage.textContent = 'Please complete the verification challenge.';
+      if (authMode === 'register' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) { authMessage.textContent = 'Enter a valid email address.'; authSubmit.disabled = false; return; }
+      const captchaVerified = await verifyCaptcha();
+      if (!captchaVerified) {
         authSubmit.disabled = false;
         return;
       }
-      if (authMode === 'register' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) { authMessage.textContent = 'Enter a valid email address.'; authSubmit.disabled = false; return; }
-      const authOptions = { captchaToken, options: { emailRedirectTo: window.location.origin } };
+
       const result = authMode === 'login'
-        ? await supabaseClient.auth.signInWithPassword({ ...values, captchaToken })
-        : await supabaseClient.auth.signUp({ ...values, captchaToken, options: { emailRedirectTo: window.location.origin } });
+        ? await supabaseClient.auth.signInWithPassword(values)
+        : await supabaseClient.auth.signUp({ ...values, options: { emailRedirectTo: window.location.origin } });
       if (result.error) {
         authMessage.textContent = result.error.message;
         if (window.hcaptcha) window.hcaptcha.reset(hCaptchaWidget);
@@ -514,6 +536,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       hideAuthModal();
       unlockSite();
       updateAccount();
+      if (window.hcaptcha) window.hcaptcha.reset(hCaptchaWidget);
     }
 
     function unlockSite() { document.body.classList.remove('auth-required'); document.querySelector('#auth-gate').hidden = true; }
