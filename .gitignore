@@ -2,5 +2,4 @@ __pycache__/
 *.py[cod]
 python_practice.sqlite3
 .venv/
-CNAME
 app.js
