@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: python-in-practice
+    runtime: python
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.1
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SITE_BASE_URL
+        value: https://code.pip.abrdns.com

@@ -16,7 +16,28 @@ from flask import Flask, jsonify, render_template, request, send_file, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://127.0.0.1:5000")
+
+
+def get_site_base_url():
+    configured = os.environ.get("SITE_BASE_URL")
+    if configured:
+        return configured.rstrip("/")
+
+    cname_path = os.path.join(os.path.dirname(__file__), "CNAME")
+    try:
+        with open(cname_path, "r", encoding="utf-8") as cname_file:
+            domain = cname_file.read().strip()
+    except OSError:
+        domain = "code.pip.abrdns.com"
+
+    if not domain:
+        return "https://code.pip.abrdns.com"
+    if domain.startswith(("http://", "https://")):
+        return domain.rstrip("/")
+    return f"https://{domain}".rstrip("/")
+
+
+SITE_BASE_URL = get_site_base_url()
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "python-in-practice-local-key")
 app.config["DISCORD_WEBHOOK_URL"] = os.environ.get("DISCORD_WEBHOOK_URL") or "https://discord.com/api/webhooks/" + "1543064103042555906/" + "9xO8TnZyi19K5kbEChZMqlFoB57LfVbrvGEK8C_SyjSn4icI4UG2JiKAW6XHzSlAlti7"
 if getattr(sys, "frozen", False):

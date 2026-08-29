@@ -386,7 +386,8 @@ print(f"It is {datetime.now():%A}.")</textarea>
       output.textContent = '';
       const started = performance.now();
       try {
-        const response = await fetch('/api/run-code', {
+        const siteBaseUrl = window.location.origin || 'https://code.pip.abrdns.com';
+        const response = await fetch(`${siteBaseUrl}/api/run-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: codeEditor.getValue() })
