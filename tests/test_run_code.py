@@ -35,6 +35,14 @@ class RunCodeEndpointTests(unittest.TestCase):
         self.assertIn("01f4e24a-3376-48ca-85a2-7e069f0aa5de", page_html)
         self.assertNotIn("ES_8582c9b4f8724ba086eb7e68af308e97", page_html)
 
+    def test_auth_modal_includes_forgot_password_flow(self):
+        response = self.client.get("/")
+        page_html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Forgot your password", page_html)
+        self.assertIn("auth-reset-link", page_html)
+
     @patch("urllib.request.urlopen")
     def test_captcha_verification_endpoint_uses_server_secret(self, mock_urlopen):
         app_module.app.config["HCAPTCHA_SECRET_KEY"] = "ES_8582c9b4f8724ba086eb7e68af308e97"
