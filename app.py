@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 import threading
 import urllib.error
@@ -253,6 +254,34 @@ def save_workspace():
     database.commit()
     database.close()
     return jsonify(saved=True)
+
+
+@app.post("/api/run-code")
+def run_code():
+    payload = request.get_json(silent=True) or {}
+    code = payload.get("code", "")
+    if not isinstance(code, str):
+        return jsonify(error="Code must be a string."), 400
+
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=os.path.dirname(__file__),
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify(error="Code timed out after 10 seconds."), 408
+
+    output = (completed.stdout or "") + (completed.stderr or "")
+    return jsonify(
+        ok=completed.returncode == 0,
+        stdout=completed.stdout or "",
+        stderr=completed.stderr or "",
+        output=output,
+        exitCode=completed.returncode,
+    )
 
 
 if __name__ == "__main__":

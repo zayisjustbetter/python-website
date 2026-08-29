@@ -181,7 +181,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       codeEditor.setOption('mode', isPython ? 'python' : 'markdown');
       codeEditor.setOption('readOnly', !activeFile || activeFile === '.venv');
       languageStatus.innerHTML = isPython ? '◉ &nbsp; Python' : '◉ &nbsp; ' + (activeFile === 'README.md' ? 'Markdown' : 'No file');
-      runButton.disabled = !pyodide || !isPython;
+      runButton.disabled = !isPython;
       document.querySelectorAll('.file-item').forEach((item) => item.classList.toggle('active', item.dataset.file === activeFile));
       renderTabs();
     }
@@ -351,7 +351,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
     }
 
     async function runCode() {
-      if (!pyodide || !activeFile || !activeFile.endsWith('.py')) return;
+      if (!activeFile || !activeFile.endsWith('.py')) return;
       if (!codeEditor) return;
       fileContents[activeFile] = codeEditor.getValue();
       saveWorkspace();
@@ -361,22 +361,26 @@ print(f"It is {datetime.now():%A}.")</textarea>
       output.textContent = '';
       const started = performance.now();
       try {
-        pyodide.setStdout({ batched: appendTerminal });
-        pyodide.setStderr({ batched: (chunk) => {
-          output.classList.add('error');
-          appendTerminal(chunk);
-        } });
-        await pyodide.runPythonAsync(codeEditor.getValue());
-        const elapsed = Math.round(performance.now() - started);
-        if (!output.textContent.trim()) {
-          output.textContent = 'Code ran successfully with no output.';
+        const response = await fetch('/api/run-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeEditor.getValue() })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'The code could not be executed.');
         }
-        runTime.textContent = `${elapsed} ms`;
+        const joinedOutput = (data.stdout || '') + (data.stderr || '');
+        output.textContent = joinedOutput || (data.ok ? 'Code ran successfully with no output.' : 'The code finished without printing any output.');
+        if (!data.ok) {
+          output.classList.add('error');
+        }
+        runTime.textContent = `${Math.round(performance.now() - started)} ms`;
       } catch (error) {
         output.textContent = error?.message || String(error);
         output.classList.add('error');
       } finally {
-        runButton.disabled = !pyodide;
+        runButton.disabled = false;
         runButton.innerHTML = '<span>▶</span> Launch Code';
       }
     }
