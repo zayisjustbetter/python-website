@@ -25,6 +25,13 @@ class RunCodeEndpointTests(unittest.TestCase):
         self.assertEqual(response.get_json()["stdout"], "hello\n")
         mock_urlopen.assert_not_called()
 
+    def test_auth_modal_includes_hcaptcha_container(self):
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("auth-captcha", response.get_data(as_text=True))
+        self.assertIn("h-captcha", response.get_data(as_text=True).lower())
+
 
 if __name__ == "__main__":
     unittest.main()
