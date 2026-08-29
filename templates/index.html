@@ -350,8 +350,6 @@ print(f"It is {datetime.now():%A}.")</textarea>
       if (!text.endsWith('\n')) output.textContent += '\n';
     }
 
-    const RUN_CODE_URL = 'https://code.pip.abrdns.com/api/run-code';
-
     async function runCode() {
       if (!activeFile || !activeFile.endsWith('.py')) return;
       if (!codeEditor) return;
@@ -363,7 +361,7 @@ print(f"It is {datetime.now():%A}.")</textarea>
       output.textContent = '';
       const started = performance.now();
       try {
-        const response = await fetch(RUN_CODE_URL, {
+        const response = await fetch('/api/run-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: codeEditor.getValue() })
